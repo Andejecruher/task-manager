@@ -1,0 +1,151 @@
+version: "3.8"
+
+services:
+  # Base de datos principal
+  postgres:
+    build:
+      context: ./docker/postgres
+      dockerfile: Dockerfile
+    container_name: taskmanager_postgres_dev
+    environment:
+      POSTGRES_DB: taskmanager_dev
+      POSTGRES_USER: taskmanager_user
+      POSTGRES_PASSWORD: dev_password_123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      TZ: "America/Mexico_City"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./src/database/migrations:/docker-entrypoint-initdb.d/migrations
+    command: >
+      postgres 
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c shared_preload_libraries='pg_stat_statements,pgcrypto'
+      -c log_statement=all
+      -c log_duration=on
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskmanager_user -d taskmanager_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - taskmanager-network
+
+  # Redis para caché y sesiones
+  redis:
+    image: redis:7-alpine
+    container_name: taskmanager_redis_dev
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server 
+      --appendonly yes 
+      --requirepass redis_dev_password
+    volumes:
+      - redis_data_dev:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - taskmanager-network
+
+  # Interface de administración de PostgreSQL
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: taskmanager_pgadmin_dev
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data_dev:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - taskmanager-network
+
+  # Interface de administración de Redis
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: taskmanager_redis_commander_dev
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_dev_password
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - taskmanager-network
+
+  # Aplicación Node.js (opcional en desarrollo)
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: taskmanager_app_dev
+    ports:
+      - "3000:3000"
+      - "9229:9229" # Debug port
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskmanager_dev
+      DB_USER: taskmanager_user
+      DB_PASSWORD: dev_password_123
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_dev_password
+      JWT_SECRET: dev_jwt_secret_key_change_in_production
+      APP_PORT: 3000
+      LOG_LEVEL: debug
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        npm install &&
+        npm run build &&
+        npm run migrate:up &&
+        npm run dev
+      "
+    restart: unless-stopped
+    networks:
+      - taskmanager-network
+
+networks:
+  taskmanager-network:
+    driver: bridge
+    name: taskmanager-network-dev
+
+volumes:
+  postgres_data_dev:
+    name: taskmanager_postgres_data_dev
+  redis_data_dev:
+    name: taskmanager_redis_data_dev
+  pgadmin_data_dev:
+    name: taskmanager_pgadmin_data_dev

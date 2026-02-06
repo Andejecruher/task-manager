@@ -69,6 +69,7 @@ export interface LoginResponse {
         avatarUrl?: string;
     };
     tokens: {
+        verificationToken?: string; // Solo para registro, no se devuelve en login
         accessToken: string;
         refreshToken: string;
         expiresIn: number;

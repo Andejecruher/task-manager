@@ -1,8 +1,10 @@
 import { plainToClass } from 'class-transformer';
-import { IsEmail, IsIn, IsNotEmpty, IsString, MaxLength, MinLength, validate } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength, validate } from 'class-validator';
 import { Request, Response } from 'express';
+import { authService } from '../services/auth';
 import {
     AuthError,
+    LoginDTO,
     RegisterDTO
 } from '../types';
 import { logger } from '../utils/logger';
@@ -30,11 +32,20 @@ class RegisterDTOClass implements RegisterDTO {
     @IsString()
     @IsNotEmpty()
     companySlug!: string;
+}
+
+class LoginDTOClass implements LoginDTO {
+    @IsEmail()
+    @IsNotEmpty()
+    email!: string;
 
     @IsString()
     @IsNotEmpty()
-    @IsIn(['admin', 'user'])
-    role!: string;
+    password!: string;
+
+    @IsString()
+    @IsNotEmpty()
+    companySlug!: string;
 }
 
 
@@ -46,7 +57,6 @@ export class AuthController {
        */
     async register(req: Request, res: Response) {
         try {
-            console.log('Registrando empresa y usuario:', req.body);
             // Validar datos de entrada
             const dto = plainToClass(RegisterDTOClass, req.body);
             const errors = await validate(dto);
@@ -55,14 +65,45 @@ export class AuthController {
                 return (res.status(400) as any).apiValidationError(errors);
             }
 
-            // const result = await authService.register(dto);
+            const result = await authService.register(dto, (req as any).deviceInfo);
 
-            res.status(201).apiSuccess(errors, 'Registro exitoso');
+            res.status(201).apiSuccess(result, 'Registro exitoso');
 
         } catch (error) {
             this.handleError(error, res, 'register');
         }
     }
+
+    /**
+   * @route POST /api/v1/auth/login
+   * @desc Iniciar sesión
+   * @access Public
+   */
+    async login(req: Request, res: Response) {
+        try {
+            // Validar datos de entrada
+            const dto = plainToClass(LoginDTOClass, req.body);
+            const errors = await validate(dto);
+
+            if (errors.length > 0) {
+                return res.status(400).apiValidationError(errors);
+            }
+
+            const deviceInfo = (req as any).deviceInfo || {};
+            const ipAddress = req.ip || req.connection.remoteAddress;
+
+            const result = await authService.login(dto, deviceInfo, ipAddress);
+
+            // Configurar cookies (opcional)
+            this.setAuthCookies(res, result.tokens);
+
+            return res.apiSuccess(result, 'Login exitoso');
+
+        } catch (error) {
+            return this.handleError(error, res, 'login');
+        }
+    }
+
 
     // ====================
     // MÉTODOS PRIVADOS
@@ -84,6 +125,61 @@ export class AuthController {
 
         // Error inesperado
         (res.status(500) as any).apiError('Error interno del servidor');
+    }
+    private setAuthCookies(res: Response, tokens: any) {
+        const isProduction = process.env.NODE_ENV === 'production';
+
+        // Access token cookie (httpOnly, seguro)
+        res.cookie('access_token', tokens.accessToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
+            maxAge: tokens.expiresIn * 1000,
+            path: '/'
+        });
+
+        // Refresh token cookie (httpOnly, seguro)
+        res.cookie('refresh_token', tokens.refreshToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
+            maxAge: tokens.refreshExpiresIn ? tokens.refreshExpiresIn * 1000 : 604800000,
+            path: '/api/v1/auth/refresh'
+        });
+
+        // Token para frontend (no httpOnly, solo para lectura)
+        res.cookie('token', tokens.accessToken, {
+            httpOnly: false,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
+            maxAge: tokens.expiresIn * 1000,
+            path: '/'
+        });
+    }
+
+    private clearAuthCookies(res: Response) {
+        const isProduction = process.env.NODE_ENV === 'production';
+
+        res.clearCookie('access_token', {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
+            path: '/'
+        });
+
+        res.clearCookie('refresh_token', {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
+            path: '/api/v1/auth/refresh'
+        });
+
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
+            path: '/'
+        });
     }
 }
 

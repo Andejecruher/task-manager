@@ -29,5 +29,19 @@ router.post('/login', extractDeviceInfo, authController.login.bind(authControlle
  */
 router.post('/refresh', authController.refreshTokens.bind(authController));
 
+/**
+ * @route POST /api/v1/auth/request-password-reset
+ * @desc Solicitar reset de contraseña
+ * @access Public
+ */
+router.post('/request-password-reset', authController.requestPasswordReset.bind(authController));
+
+/**
+ * @route POST /api/v1/auth/reset-password
+ * @desc Resetear contraseña con token
+ * @access Public
+ */
+router.post('/reset-password', authController.resetPassword.bind(authController));
+
 
 export default router;

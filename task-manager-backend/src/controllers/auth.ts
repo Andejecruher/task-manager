@@ -9,7 +9,7 @@ import {
 } from "class-validator";
 import { Request, Response } from "express";
 import { authService } from "../services/auth";
-import { AuthError, LoginDTO, RegisterDTO } from "../types";
+import { AuthError, LoginDTO, RegisterDTO, ResetPasswordDTO } from "../types";
 import { logger } from "../utils/logger";
 
 // DTOs para validación
@@ -49,6 +49,18 @@ class LoginDTOClass implements LoginDTO {
   @IsString()
   @IsNotEmpty()
   companySlug!: string;
+}
+
+class ResetPasswordDTOClass implements ResetPasswordDTO {
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  @MaxLength(10)
+  newPassword!: string;
 }
 
 export class AuthController {
@@ -126,6 +138,58 @@ export class AuthController {
       this.handleError(error, res, "refresh");
     }
   }
+
+  /**
+  * @route POST /api/v1/auth/request-password-reset
+  * @desc Solicitar reset de contraseña
+  * @access Public
+  */
+  async requestPasswordReset(req: Request, res: Response) {
+    try {
+      const { email, companySlug } = req.body;
+
+      if (!email || !companySlug) {
+        throw new AuthError('Email y empresa son requeridos', 'VALIDATION_ERROR', 400);
+      }
+
+      const response = await authService.requestPasswordReset(email, companySlug);
+
+      // Por seguridad, siempre devolvemos éxito aunque el email no exista
+      res.apiSuccess(
+        response,
+        'Si el email existe, recibirás instrucciones para resetear tu contraseña'
+      );
+
+    } catch (error) {
+      this.handleError(error, res, 'requestPasswordReset');
+    }
+  }
+
+  /**
+   * @route POST /api/v1/auth/reset-password
+   * @desc Resetear contraseña con token
+   * @access Public
+   */
+  async resetPassword(req: Request, res: Response) {
+    try {
+      // Validar datos de entrada
+      const dto = plainToClass(ResetPasswordDTOClass, req.body);
+      const errors = await validate(dto);
+
+      if (errors.length > 0) {
+        return res.status(400).apiValidationError(errors);
+      }
+
+      await authService.resetPassword(dto);
+
+      res.apiSuccess(null, 'Contraseña reseteada exitosamente');
+
+    } catch (error) {
+      this.handleError(error, res, 'resetPassword');
+    }
+  }
+
+
 
   // ====================
   // MÉTODOS PRIVADOS

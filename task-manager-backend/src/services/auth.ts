@@ -7,6 +7,7 @@ import {
   LoginDTO,
   LoginResponse,
   RegisterDTO,
+  ResetPasswordDTO
 } from "../types";
 import { logger } from "../utils/logger";
 import { passwordService } from "./password";
@@ -369,6 +370,98 @@ export class AuthService {
       if (error instanceof AuthError) throw error;
       logger.error("Error en login:", error);
       throw new AuthError("Error en el login", "LOGIN_ERROR", 500);
+    }
+  }
+
+  /**
+   * Solicitar reset de contraseña
+   */
+  async requestPasswordReset(email: string, companySlug: string): Promise<{
+    resetToken: string;
+    expiresAt: Date;
+  } | void> {
+    try {
+      // 1. Buscar compañía
+      const companyResult = await db.query(
+        `SELECT id FROM companies WHERE slug = $1`,
+        [companySlug]
+      );
+
+      if (companyResult.length === 0) {
+        // No revelar que la compañía no existe por seguridad
+        return;
+      }
+
+      const company = companyResult[0];
+
+      // 2. Buscar usuario
+      const userResult = await db.query(
+        `SELECT id, email, full_name FROM users 
+         WHERE email = $1 AND company_id = $2 AND is_active = true`,
+        [email, company.id]
+      );
+
+      if (userResult.length === 0) {
+        // No revelar que el usuario no existe por seguridad
+        return;
+      }
+
+      const user = userResult[0];
+
+      // 3. Generar token de reset
+      const { token: resetToken, expiresAt } = tokenService.generateResetPasswordToken(
+        user.id,
+        company.id
+      );
+
+      // 4. TODO: Enviar email con token (implementar después)
+      // await this.sendPasswordResetEmail(user.email, user.full_name, resetToken, expiresAt);
+
+      logger.info('Solicitud de reset de contraseña', {
+        userId: user.id,
+        email: user.email
+      });
+
+      return {
+        resetToken, // Para pruebas, en producción no se devuelve
+        expiresAt,
+      }
+    } catch (error) {
+      logger.error('Error solicitando reset de contraseña:', error);
+      // No lanzamos error para no revelar información
+    }
+  }
+
+  /**
+   * Resetear contraseña con token
+   */
+  async resetPassword(data: ResetPasswordDTO): Promise<void> {
+    try {
+      // 1. Verificar token
+      const { userId, companyId } = await tokenService.verifyResetPasswordToken(data.token);
+
+      // 2. Validar nueva contraseña
+      passwordService.validatePassword(data.newPassword);
+
+      // 3. Generar hash de nueva contraseña
+      const passwordHash = await passwordService.hashPassword(data.newPassword);
+
+      // 4. Actualizar contraseña
+      await db.query(
+        `UPDATE users 
+         SET password_hash = $1, updated_at = NOW()
+         WHERE id = $2 AND company_id = $3`,
+        [passwordHash, userId, companyId]
+      );
+
+      // 5. Revocar todas las sesiones por seguridad
+      await sessionService.revokeAllSessions(userId, companyId);
+
+      logger.info('Contraseña reseteada', { userId });
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error('Error reseteando contraseña:', error);
+      throw new AuthError('Error reseteando contraseña', 'RESET_PASSWORD_ERROR', 500);
     }
   }
 

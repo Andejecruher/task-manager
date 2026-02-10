@@ -23,4 +23,11 @@ router.post('/register', extractDeviceInfo, authController.register.bind(authCon
 router.post('/login', extractDeviceInfo, authController.login.bind(authController));
 
 
+/** * @route POST /api/v1/auth/refresh
+ * @desc Refrescar tokens de acceso
+ * @access Public (requiere refresh token)
+ */
+router.post('/refresh', authController.refreshTokens.bind(authController));
+
+
 export default router;

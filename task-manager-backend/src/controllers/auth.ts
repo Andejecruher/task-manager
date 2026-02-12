@@ -9,7 +9,7 @@ import {
 } from "class-validator";
 import { Request, Response } from "express";
 import { authService } from "../services/auth";
-import { AuthError, LoginDTO, RegisterDTO, ResetPasswordDTO } from "../types";
+import { AuthError, AuthRequest, LoginDTO, RegisterDTO, ResetPasswordDTO } from "../types";
 import { logger } from "../utils/logger";
 
 // DTOs para validación
@@ -218,6 +218,33 @@ export class AuthController {
     }
   }
 
+  /**
+   * @route POST /api/v1/auth/logout
+   * @desc Cerrar sesión (sesión actual)
+   * @access Private
+   */
+  async logout(req: Request, res: Response) {
+    try {
+      const authReq = req as AuthRequest;
+
+      await authService.logout(
+        authReq.sessionId,
+        authReq.user.id,
+        authReq.company.id
+      );
+
+      // Limpiar cookies
+      this.clearAuthCookies(res);
+
+      res.apiSuccess(null, 'Logout exitoso');
+      return;
+
+    } catch (error) {
+      this.handleError(error, res, 'logout');
+    }
+  }
+
+
   // ====================
   // MÉTODOS PRIVADOS
   // ====================
@@ -276,7 +303,34 @@ export class AuthController {
       path: "/",
     });
   }
+
+  private clearAuthCookies(res: Response) {
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      path: '/'
+    });
+
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      path: '/api/v1/auth/refresh'
+    });
+
+    res.clearCookie('token', {
+      httpOnly: false,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      path: '/'
+    });
+  }
 }
+
+
 
 // Instancia singleton
 export const authController = new AuthController();

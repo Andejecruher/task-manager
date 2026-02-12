@@ -1,6 +1,7 @@
+import { authController } from "@/controllers/auth";
+import { CompanyGuard } from "@/guards/company";
+import { authenticate, extractDeviceInfo } from "@/middlewares/auth";
 import { Router } from "express";
-import { authController } from "../controllers/auth";
-import { extractDeviceInfo } from "../middlewares/auth";
 
 const router = Router();
 
@@ -14,9 +15,9 @@ const router = Router();
  * @access Public
  */
 router.post(
-  "/register",
-  extractDeviceInfo,
-  authController.register.bind(authController),
+    "/register",
+    extractDeviceInfo,
+    authController.register.bind(authController),
 );
 
 /**
@@ -25,9 +26,9 @@ router.post(
  * @access Public
  */
 router.post(
-  "/login",
-  extractDeviceInfo,
-  authController.login.bind(authController),
+    "/login",
+    extractDeviceInfo,
+    authController.login.bind(authController),
 );
 
 /** * @route POST /api/v1/auth/refresh
@@ -42,8 +43,8 @@ router.post("/refresh", authController.refreshTokens.bind(authController));
  * @access Public
  */
 router.post(
-  "/request-password-reset",
-  authController.requestPasswordReset.bind(authController),
+    "/request-password-reset",
+    authController.requestPasswordReset.bind(authController),
 );
 
 /**
@@ -52,8 +53,8 @@ router.post(
  * @access Public
  */
 router.post(
-  "/reset-password",
-  authController.resetPassword.bind(authController),
+    "/reset-password",
+    authController.resetPassword.bind(authController),
 );
 
 /**
@@ -62,8 +63,25 @@ router.post(
  * @access Public
  */
 router.post(
-  "/verify-email/:token",
-  authController.verifyEmail.bind(authController),
+    "/verify-email/:token",
+    authController.verifyEmail.bind(authController),
 );
+
+// ====================
+// RUTAS PRIVADAS (requieren autenticación)
+// ====================
+
+/**
+ * @route POST /api/v1/auth/logout
+ * @desc Cerrar sesión (sesión actual)
+ * @access Private
+ */
+router.post(
+    '/logout',
+    authenticate,
+    CompanyGuard,
+    authController.logout.bind(authController)
+);
+
 
 export default router;

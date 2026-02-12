@@ -500,6 +500,19 @@ export class AuthService {
   }
 
   /**
+   * Logout (revocar sesión actual)
+   */
+  async logout(sessionId: string, userId: string, companyId: string): Promise<void> {
+    try {
+      await sessionService.revokeSession(sessionId, userId, companyId);
+      logger.info('Logout exitoso', { userId, sessionId });
+    } catch (error) {
+      logger.error('Error en logout:', error);
+      throw new AuthError('Error en logout', 'LOGOUT_ERROR', 500);
+    }
+  }
+
+  /**
    * Obtener sesiones activas
    */
   async getSessions(

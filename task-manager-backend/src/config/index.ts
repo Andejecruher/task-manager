@@ -41,8 +41,25 @@ export const config = {
         corsOrigin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
     },
 
+    // smtp
+    smtp: {
+        host: process.env.SMTP_HOST || 'smtp.example.com',
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        user: process.env.SMTP_USER || '',
+        pass: process.env.SMTP_PASSWORD || '',
+        from: process.env.SMTP_FROM || '',
+    },
+
+    // Application    
+    app: {
+        url: process.env.APP_URL || 'http://localhost:3000',
+        frontendUrl: process.env.APP_FRONTEND_URL || 'http://localhost:5173',
+    },
+
     // Logging
     logging: {
         level: process.env.LOG_LEVEL || 'info',
     },
+
+
 };

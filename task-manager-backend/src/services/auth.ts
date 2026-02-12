@@ -1,3 +1,4 @@
+import { config } from "../config";
 import { db } from "../database/connection";
 import {
   AuthError,
@@ -10,6 +11,7 @@ import {
   ResetPasswordDTO,
 } from "../types";
 import { logger } from "../utils/logger";
+import { emailService } from "./email";
 import { passwordService } from "./password";
 import { sessionService } from "./session";
 import { tokenService } from "./token";
@@ -113,7 +115,7 @@ export class AuthService {
           });
 
         // 10. TODO: Enviar email de verificación (implementar después)
-        // await this.sendVerificationEmail(user.email, user.full_name, verificationToken);
+        await this.sendVerificationEmail(user.email, user.full_name, verificationToken);
 
         logger.info("Registro exitoso", {
           userId: user.id,
@@ -473,6 +475,31 @@ export class AuthService {
   }
 
   /**
+   * Verificar email
+   */
+  async verifyEmail(token: string): Promise<void> {
+    try {
+      // 1. Verificar token
+      const { userId, companyId } =
+        await tokenService.verifyEmailVerificationToken(token);
+
+      // 2. Marcar email como verificado
+      await db.query(
+        `UPDATE users 
+         SET email_verified = true, updated_at = NOW()
+         WHERE id = $1 AND company_id = $2`,
+        [userId, companyId],
+      );
+
+      logger.info("Email verificado", { userId });
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error verificando email:", error);
+      throw new AuthError("Error verificando email", "VERIFY_EMAIL_ERROR", 500);
+    }
+  }
+
+  /**
    * Obtener sesiones activas
    */
   async getSessions(
@@ -490,6 +517,26 @@ export class AuthService {
   // ====================
   // MÉTODOS PRIVADOS
   // ====================
+
+  private async sendVerificationEmail(
+    to: string,
+    fullName: string,
+    token: string,
+  ): Promise<void> {
+    if (!to) return;
+
+    try {
+      const verificationLink = `${config.app.frontendUrl}/verify-email?token=${token}`;
+
+      const subject = "Verifica tu email";
+      const text = `Hola ${fullName},\n\nPor favor verifica tu email haciendo clic en el siguiente enlace:\n${verificationLink}\n\nSi no solicitaste esto, ignora este mensaje.`;
+      const html = `<p>Hola ${fullName},</p><p>Por favor verifica tu email haciendo clic en el siguiente enlace:</p><a href="${verificationLink}">Verificar Email</a><p>Si no solicitaste esto, ignora este mensaje.</p>`;
+
+      await emailService.sendEmail(to, subject, text, html);
+    } catch (error) {
+      logger.error("Error enviando email de verificación:", error);
+    }
+  }
 
   private validateRegistrationData(data: RegisterDTO): void {
     const errors: string[] = [];
@@ -524,31 +571,6 @@ export class AuthService {
 
     if (errors.length > 0) {
       throw new AuthError(errors.join(", "), "VALIDATION_ERROR", 400);
-    }
-  }
-
-  /**
-   * Verificar email
-   */
-  async verifyEmail(token: string): Promise<void> {
-    try {
-      // 1. Verificar token
-      const { userId, companyId } =
-        await tokenService.verifyEmailVerificationToken(token);
-
-      // 2. Marcar email como verificado
-      await db.query(
-        `UPDATE users 
-         SET email_verified = true, updated_at = NOW()
-         WHERE id = $1 AND company_id = $2`,
-        [userId, companyId],
-      );
-
-      logger.info("Email verificado", { userId });
-    } catch (error) {
-      if (error instanceof AuthError) throw error;
-      logger.error("Error verificando email:", error);
-      throw new AuthError("Error verificando email", "VERIFY_EMAIL_ERROR", 500);
     }
   }
 

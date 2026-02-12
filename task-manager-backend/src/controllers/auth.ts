@@ -140,28 +140,34 @@ export class AuthController {
   }
 
   /**
-  * @route POST /api/v1/auth/request-password-reset
-  * @desc Solicitar reset de contraseña
-  * @access Public
-  */
+   * @route POST /api/v1/auth/request-password-reset
+   * @desc Solicitar reset de contraseña
+   * @access Public
+   */
   async requestPasswordReset(req: Request, res: Response) {
     try {
       const { email, companySlug } = req.body;
 
       if (!email || !companySlug) {
-        throw new AuthError('Email y empresa son requeridos', 'VALIDATION_ERROR', 400);
+        throw new AuthError(
+          "Email y empresa son requeridos",
+          "VALIDATION_ERROR",
+          400,
+        );
       }
 
-      const response = await authService.requestPasswordReset(email, companySlug);
+      const response = await authService.requestPasswordReset(
+        email,
+        companySlug,
+      );
 
       // Por seguridad, siempre devolvemos éxito aunque el email no exista
       res.apiSuccess(
         response,
-        'Si el email existe, recibirás instrucciones para resetear tu contraseña'
+        "Si el email existe, recibirás instrucciones para resetear tu contraseña",
       );
-
     } catch (error) {
-      this.handleError(error, res, 'requestPasswordReset');
+      this.handleError(error, res, "requestPasswordReset");
     }
   }
 
@@ -170,26 +176,47 @@ export class AuthController {
    * @desc Resetear contraseña con token
    * @access Public
    */
-  async resetPassword(req: Request, res: Response) {
+  async resetPassword(req: Request, res: Response): Promise<void> {
     try {
       // Validar datos de entrada
       const dto = plainToClass(ResetPasswordDTOClass, req.body);
       const errors = await validate(dto);
 
       if (errors.length > 0) {
-        return res.status(400).apiValidationError(errors);
+        res.status(400).apiValidationError(errors);
+        return;
       }
 
       await authService.resetPassword(dto);
 
-      res.apiSuccess(null, 'Contraseña reseteada exitosamente');
-
+      res.apiSuccess(null, "Contraseña reseteada exitosamente");
+      return;
     } catch (error) {
-      this.handleError(error, res, 'resetPassword');
+      this.handleError(error, res, "resetPassword");
+      return;
     }
   }
 
+  /**
+   * @route POST /api/v1/auth/verify-email/:token
+   * @desc Verificar email con token
+   * @access Public
+   */
+  async verifyEmail(req: Request, res: Response) {
+    try {
+      const { token } = req.params;
 
+      if (!token) {
+        throw new AuthError("Token requerido", "VALIDATION_ERROR", 400);
+      }
+
+      await authService.verifyEmail(token);
+
+      res.apiSuccess(null, "Email verificado exitosamente");
+    } catch (error) {
+      this.handleError(error, res, "verifyEmail");
+    }
+  }
 
   // ====================
   // MÉTODOS PRIVADOS

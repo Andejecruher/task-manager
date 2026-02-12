@@ -7,7 +7,7 @@ import {
   LoginDTO,
   LoginResponse,
   RegisterDTO,
-  ResetPasswordDTO
+  ResetPasswordDTO,
 } from "../types";
 import { logger } from "../utils/logger";
 import { passwordService } from "./password";
@@ -376,7 +376,10 @@ export class AuthService {
   /**
    * Solicitar reset de contraseña
    */
-  async requestPasswordReset(email: string, companySlug: string): Promise<{
+  async requestPasswordReset(
+    email: string,
+    companySlug: string,
+  ): Promise<{
     resetToken: string;
     expiresAt: Date;
   } | void> {
@@ -384,7 +387,7 @@ export class AuthService {
       // 1. Buscar compañía
       const companyResult = await db.query(
         `SELECT id FROM companies WHERE slug = $1`,
-        [companySlug]
+        [companySlug],
       );
 
       if (companyResult.length === 0) {
@@ -398,7 +401,7 @@ export class AuthService {
       const userResult = await db.query(
         `SELECT id, email, full_name FROM users 
          WHERE email = $1 AND company_id = $2 AND is_active = true`,
-        [email, company.id]
+        [email, company.id],
       );
 
       if (userResult.length === 0) {
@@ -409,25 +412,23 @@ export class AuthService {
       const user = userResult[0];
 
       // 3. Generar token de reset
-      const { token: resetToken, expiresAt } = tokenService.generateResetPasswordToken(
-        user.id,
-        company.id
-      );
+      const { token: resetToken, expiresAt } =
+        tokenService.generateResetPasswordToken(user.id, company.id);
 
       // 4. TODO: Enviar email con token (implementar después)
       // await this.sendPasswordResetEmail(user.email, user.full_name, resetToken, expiresAt);
 
-      logger.info('Solicitud de reset de contraseña', {
+      logger.info("Solicitud de reset de contraseña", {
         userId: user.id,
-        email: user.email
+        email: user.email,
       });
 
       return {
         resetToken, // Para pruebas, en producción no se devuelve
         expiresAt,
-      }
+      };
     } catch (error) {
-      logger.error('Error solicitando reset de contraseña:', error);
+      logger.error("Error solicitando reset de contraseña:", error);
       // No lanzamos error para no revelar información
     }
   }
@@ -438,7 +439,9 @@ export class AuthService {
   async resetPassword(data: ResetPasswordDTO): Promise<void> {
     try {
       // 1. Verificar token
-      const { userId, companyId } = await tokenService.verifyResetPasswordToken(data.token);
+      const { userId, companyId } = await tokenService.verifyResetPasswordToken(
+        data.token,
+      );
 
       // 2. Validar nueva contraseña
       passwordService.validatePassword(data.newPassword);
@@ -451,17 +454,21 @@ export class AuthService {
         `UPDATE users 
          SET password_hash = $1, updated_at = NOW()
          WHERE id = $2 AND company_id = $3`,
-        [passwordHash, userId, companyId]
+        [passwordHash, userId, companyId],
       );
 
       // 5. Revocar todas las sesiones por seguridad
       await sessionService.revokeAllSessions(userId, companyId);
 
-      logger.info('Contraseña reseteada', { userId });
+      logger.info("Contraseña reseteada", { userId });
     } catch (error) {
       if (error instanceof AuthError) throw error;
-      logger.error('Error reseteando contraseña:', error);
-      throw new AuthError('Error reseteando contraseña', 'RESET_PASSWORD_ERROR', 500);
+      logger.error("Error reseteando contraseña:", error);
+      throw new AuthError(
+        "Error reseteando contraseña",
+        "RESET_PASSWORD_ERROR",
+        500,
+      );
     }
   }
 
@@ -517,6 +524,31 @@ export class AuthService {
 
     if (errors.length > 0) {
       throw new AuthError(errors.join(", "), "VALIDATION_ERROR", 400);
+    }
+  }
+
+  /**
+   * Verificar email
+   */
+  async verifyEmail(token: string): Promise<void> {
+    try {
+      // 1. Verificar token
+      const { userId, companyId } =
+        await tokenService.verifyEmailVerificationToken(token);
+
+      // 2. Marcar email como verificado
+      await db.query(
+        `UPDATE users 
+         SET email_verified = true, updated_at = NOW()
+         WHERE id = $1 AND company_id = $2`,
+        [userId, companyId],
+      );
+
+      logger.info("Email verificado", { userId });
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error verificando email:", error);
+      throw new AuthError("Error verificando email", "VERIFY_EMAIL_ERROR", 500);
     }
   }
 

@@ -261,9 +261,6 @@ export class AuthController {
     }
   }
 
-  // ====================
-  // MÉTODOS PRIVADOS
-  // ====================
 
   /**
    * @route GET /api/v1/auth/profile
@@ -311,6 +308,32 @@ export class AuthController {
       return this.handleError(error, res, "updateProfile");
     }
   }
+
+  /**
+   * @route GET /api/v1/auth/me
+   * @desc Obtener información del usuario autenticado
+   * @access Private
+   */
+  async getCurrentUser(req: Request, res: Response) {
+    try {
+      const authReq = req as AuthRequest;
+
+      const userInfo = {
+        user: authReq.user,
+        company: authReq.company,
+        sessionId: authReq.sessionId
+      };
+
+      res.apiSuccess(userInfo, "Información de usuario obtenida");
+
+    } catch (error) {
+      this.handleError(error, res, "getCurrentUser");
+    }
+  }
+
+  // ====================
+  // MÉTODOS PRIVADOS
+  // ====================
 
   private handleError(error: any, res: Response, endpoint: string) {
     logger.error(`Error en auth/${endpoint}:`, error);

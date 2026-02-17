@@ -107,4 +107,16 @@ router.put(
   authController.updateProfile.bind(authController),
 );
 
+/**
+ * @route GET /api/v1/auth/me
+ * @desc Obtener información del usuario autenticado
+ * @access Private
+ */
+router.get(
+  "/me",
+  authenticate,
+  CompanyGuard,
+  authController.getCurrentUser.bind(authController),
+);
+
 export default router;

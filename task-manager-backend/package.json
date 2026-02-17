@@ -36,7 +36,7 @@
     "postgresql",
     "typescript"
   ],
-  "author": "Tu Nombre",
+  "author": "Eduardo ",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0",

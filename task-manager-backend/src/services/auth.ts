@@ -9,6 +9,7 @@ import {
   LoginResponse,
   RegisterDTO,
   ResetPasswordDTO,
+  UpdateProfileDTO,
 } from "../types";
 import { logger } from "../utils/logger";
 import { emailService } from "./email";
@@ -115,7 +116,11 @@ export class AuthService {
           });
 
         // 10. TODO: Enviar email de verificación (implementar después)
-        await this.sendVerificationEmail(user.email, user.full_name, verificationToken);
+        await this.sendVerificationEmail(
+          user.email,
+          user.full_name,
+          verificationToken,
+        );
 
         logger.info("Registro exitoso", {
           userId: user.id,
@@ -502,13 +507,17 @@ export class AuthService {
   /**
    * Logout (revocar sesión actual)
    */
-  async logout(sessionId: string, userId: string, companyId: string): Promise<void> {
+  async logout(
+    sessionId: string,
+    userId: string,
+    companyId: string,
+  ): Promise<void> {
     try {
       await sessionService.revokeSession(sessionId, userId, companyId);
-      logger.info('Logout exitoso', { userId, sessionId });
+      logger.info("Logout exitoso", { userId, sessionId });
     } catch (error) {
-      logger.error('Error en logout:', error);
-      throw new AuthError('Error en logout', 'LOGOUT_ERROR', 500);
+      logger.error("Error en logout:", error);
+      throw new AuthError("Error en logout", "LOGOUT_ERROR", 500);
     }
   }
 
@@ -530,6 +539,108 @@ export class AuthService {
   // ====================
   // MÉTODOS PRIVADOS
   // ====================
+
+  /**
+   * Obtener perfil de usuario
+   */
+  async getProfile(userId: string, companyId: string): Promise<any> {
+    try {
+      const result = await db.query(
+        `SELECT 
+          id, email, full_name, avatar_url, role,
+          email_verified, is_active, is_onboarded,
+          timezone, locale, created_at, updated_at,
+          (SELECT COUNT(*) FROM user_sessions 
+           WHERE user_id = $1 AND company_id = $2 AND is_active = true) as active_sessions
+         FROM users 
+         WHERE id = $1 AND company_id = $2`,
+        [userId, companyId],
+      );
+
+      if (result.length === 0) {
+        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+      }
+
+      return result[0];
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error obteniendo perfil:", error);
+      throw new AuthError("Error obteniendo perfil", "GET_PROFILE_ERROR", 500);
+    }
+  }
+
+  /**
+   * Actualizar perfil
+   */
+  async updateProfile(
+    userId: string,
+    companyId: string,
+    data: UpdateProfileDTO,
+  ): Promise<any> {
+    try {
+      // Construir query dinámica
+      const updates: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+
+      if (data.fullName !== undefined) {
+        updates.push(`full_name = $${paramIndex}`);
+        values.push(data.fullName);
+        paramIndex++;
+      }
+
+      if (data.avatarUrl !== undefined) {
+        updates.push(`avatar_url = $${paramIndex}`);
+        values.push(data.avatarUrl);
+        paramIndex++;
+      }
+
+      if (data.timezone !== undefined) {
+        updates.push(`timezone = $${paramIndex}`);
+        values.push(data.timezone);
+        paramIndex++;
+      }
+
+      if (data.locale !== undefined) {
+        updates.push(`locale = $${paramIndex}`);
+        values.push(data.locale);
+        paramIndex++;
+      }
+
+      if (updates.length === 0) {
+        return await this.getProfile(userId, companyId);
+      }
+
+      updates.push(`updated_at = NOW()`);
+
+      const query = `
+        UPDATE users 
+        SET ${updates.join(", ")}
+        WHERE id = $${paramIndex} AND company_id = $${paramIndex + 1}
+        RETURNING id, email, full_name, avatar_url, timezone, locale, updated_at
+      `;
+
+      values.push(userId, companyId);
+
+      const result = await db.query(query, values);
+
+      if (result.length === 0) {
+        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+      }
+
+      logger.info("Perfil actualizado", { userId });
+
+      return result[0];
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error actualizando perfil:", error);
+      throw new AuthError(
+        "Error actualizando perfil",
+        "UPDATE_PROFILE_ERROR",
+        500,
+      );
+    }
+  }
 
   private async sendVerificationEmail(
     to: string,

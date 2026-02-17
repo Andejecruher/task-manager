@@ -8,9 +8,17 @@ import {
   validate,
 } from "class-validator";
 import { Request, Response } from "express";
-import { authService } from "../services/auth";
-import { AuthError, AuthRequest, LoginDTO, RegisterDTO, ResetPasswordDTO } from "../types";
-import { logger } from "../utils/logger";
+import { AuthService } from "@/services/auth";
+
+const authService = new AuthService();
+import {
+  AuthError,
+  AuthRequest,
+  LoginDTO,
+  RegisterDTO,
+  ResetPasswordDTO,
+} from "../types";
+import { logger } from "@/utils/logger";
 
 // DTOs para validación
 class RegisterDTOClass implements RegisterDTO {
@@ -61,6 +69,16 @@ class ResetPasswordDTOClass implements ResetPasswordDTO {
   @MinLength(6)
   @MaxLength(10)
   newPassword!: string;
+}
+
+class UpdateProfileDTOClass {
+  @IsEmail()
+  @IsNotEmpty()
+  email?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  fullName?: string;
 }
 
 export class AuthController {
@@ -230,24 +248,69 @@ export class AuthController {
       await authService.logout(
         authReq.sessionId,
         authReq.user.id,
-        authReq.company.id
+        authReq.company.id,
       );
 
       // Limpiar cookies
       this.clearAuthCookies(res);
 
-      res.apiSuccess(null, 'Logout exitoso');
+      res.apiSuccess(null, "Logout exitoso");
       return;
-
     } catch (error) {
-      this.handleError(error, res, 'logout');
+      this.handleError(error, res, "logout");
     }
   }
-
 
   // ====================
   // MÉTODOS PRIVADOS
   // ====================
+
+  /**
+   * @route GET /api/v1/auth/profile
+   * @desc Obtener perfil del usuario
+   * @access Private
+   */
+  async getProfile(req: Request, res: Response) {
+    try {
+      const authReq = req as AuthRequest;
+      const profile = await authService.getProfile(
+        authReq.user.id,
+        authReq.company.id,
+      );
+
+      res.apiSuccess(profile, "Perfil obtenido");
+    } catch (error) {
+      this.handleError(error, res, "getProfile");
+    }
+  }
+
+  /**
+   * @route PUT /api/v1/auth/profile
+   * @desc Actualizar perfil
+   * @access Private
+   */
+  async updateProfile(req: Request, res: Response) {
+    try {
+      // Validar datos de entrada
+      const authReq = req as AuthRequest;
+      const dto = plainToClass(UpdateProfileDTOClass, req.body);
+      const errors = await validate(dto, { skipMissingProperties: true });
+
+      if (errors.length > 0) {
+        return res.status(400).apiValidationError(errors);
+      }
+
+      const updatedProfile = await authService.updateProfile(
+        authReq.user.id,
+        authReq.company.id,
+        dto,
+      );
+
+      return res.apiSuccess(updatedProfile, "Perfil actualizado");
+    } catch (error) {
+      return this.handleError(error, res, "updateProfile");
+    }
+  }
 
   private handleError(error: any, res: Response, endpoint: string) {
     logger.error(`Error en auth/${endpoint}:`, error);
@@ -305,32 +368,30 @@ export class AuthController {
   }
 
   private clearAuthCookies(res: Response) {
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isProduction = process.env.NODE_ENV === "production";
 
-    res.clearCookie('access_token', {
+    res.clearCookie("access_token", {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      path: '/'
+      sameSite: isProduction ? "strict" : "lax",
+      path: "/",
     });
 
-    res.clearCookie('refresh_token', {
+    res.clearCookie("refresh_token", {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      path: '/api/v1/auth/refresh'
+      sameSite: isProduction ? "strict" : "lax",
+      path: "/api/v1/auth/refresh",
     });
 
-    res.clearCookie('token', {
+    res.clearCookie("token", {
       httpOnly: false,
       secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      path: '/'
+      sameSite: isProduction ? "strict" : "lax",
+      path: "/",
     });
   }
 }
-
-
 
 // Instancia singleton
 export const authController = new AuthController();

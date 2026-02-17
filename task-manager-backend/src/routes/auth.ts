@@ -15,9 +15,9 @@ const router = Router();
  * @access Public
  */
 router.post(
-    "/register",
-    extractDeviceInfo,
-    authController.register.bind(authController),
+  "/register",
+  extractDeviceInfo,
+  authController.register.bind(authController),
 );
 
 /**
@@ -26,9 +26,9 @@ router.post(
  * @access Public
  */
 router.post(
-    "/login",
-    extractDeviceInfo,
-    authController.login.bind(authController),
+  "/login",
+  extractDeviceInfo,
+  authController.login.bind(authController),
 );
 
 /** * @route POST /api/v1/auth/refresh
@@ -43,8 +43,8 @@ router.post("/refresh", authController.refreshTokens.bind(authController));
  * @access Public
  */
 router.post(
-    "/request-password-reset",
-    authController.requestPasswordReset.bind(authController),
+  "/request-password-reset",
+  authController.requestPasswordReset.bind(authController),
 );
 
 /**
@@ -53,8 +53,8 @@ router.post(
  * @access Public
  */
 router.post(
-    "/reset-password",
-    authController.resetPassword.bind(authController),
+  "/reset-password",
+  authController.resetPassword.bind(authController),
 );
 
 /**
@@ -63,8 +63,8 @@ router.post(
  * @access Public
  */
 router.post(
-    "/verify-email/:token",
-    authController.verifyEmail.bind(authController),
+  "/verify-email/:token",
+  authController.verifyEmail.bind(authController),
 );
 
 // ====================
@@ -77,11 +77,34 @@ router.post(
  * @access Private
  */
 router.post(
-    '/logout',
-    authenticate,
-    CompanyGuard,
-    authController.logout.bind(authController)
+  "/logout",
+  authenticate,
+  CompanyGuard,
+  authController.logout.bind(authController),
 );
 
+/**
+ * @route GET /api/v1/auth/profile
+ * @desc Obtener perfil del usuario
+ * @access Private
+ */
+router.get(
+  "/profile",
+  authenticate,
+  CompanyGuard,
+  authController.getProfile.bind(authController),
+);
+
+/**
+ * @route PUT /api/v1/auth/profile
+ * @desc Actualizar perfil
+ * @access Private
+ */
+router.put(
+  "/profile",
+  authenticate,
+  CompanyGuard,
+  authController.updateProfile.bind(authController),
+);
 
 export default router;

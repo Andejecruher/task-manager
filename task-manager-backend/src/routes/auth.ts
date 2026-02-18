@@ -1,6 +1,10 @@
 import { authController } from "@/controllers/auth";
 import { CompanyGuard } from "@/guards/company";
-import { authenticate, extractDeviceInfo } from "@/middlewares/auth";
+import {
+  authenticate,
+  extractDeviceInfo,
+  requireEmailVerified,
+} from "@/middlewares/auth";
 import { Router } from "express";
 
 const router = Router();
@@ -117,6 +121,31 @@ router.get(
   authenticate,
   CompanyGuard,
   authController.getCurrentUser.bind(authController),
+);
+
+/**
+ * @route POST /api/v1/auth/change-password
+ * @desc Cambiar contraseña
+ * @access Private
+ */
+router.post(
+  "/change-password",
+  authenticate,
+  CompanyGuard,
+  requireEmailVerified,
+  authController.changePassword.bind(authController),
+);
+
+/**
+ * @route GET /api/v1/auth/sessions
+ * @desc Obtener sesiones activas
+ * @access Private
+ */
+router.get(
+  "/sessions",
+  authenticate,
+  CompanyGuard,
+  authController.getSessions.bind(authController),
 );
 
 export default router;

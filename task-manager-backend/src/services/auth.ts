@@ -2,6 +2,7 @@ import { config } from "../config";
 import { db } from "../database/connection";
 import {
   AuthError,
+  ChangePasswordDTO,
   COMPANY_SLUG_REGEX,
   DeviceInfo,
   EMAIL_REGEX,
@@ -640,6 +641,85 @@ export class AuthService {
         500,
       );
     }
+  }
+
+  /**
+   * Cambiar contraseña (usuario autenticado)
+   */
+  async changePasswordService(
+    userId: string,
+    companyId: string,
+    data: ChangePasswordDTO,
+  ): Promise<void> {
+    try {
+      // 1. Obtener hash actual
+      const userResult = await db.query(
+        `SELECT password_hash FROM users WHERE id = $1 AND company_id = $2`,
+        [userId, companyId],
+      );
+
+      if (userResult.length === 0) {
+        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+      }
+
+      const currentHash = userResult[0].password_hash;
+
+      // 2. Verificar contraseña actual
+      const currentPasswordValid = await passwordService.comparePassword(
+        data.currentPassword,
+        currentHash,
+      );
+
+      if (!currentPasswordValid) {
+        throw new AuthError(
+          "Contraseña actual incorrecta",
+          "INVALID_CURRENT_PASSWORD",
+          400,
+        );
+      }
+
+      // 3. Validar nueva contraseña
+      passwordService.validatePassword(data.newPassword);
+
+      // 4. Generar nuevo hash
+      const newHash = await passwordService.hashPassword(data.newPassword);
+
+      // 5. Actualizar contraseña
+      await db.query(
+        `UPDATE users 
+         SET password_hash = $1, updated_at = NOW()
+         WHERE id = $2 AND company_id = $3`,
+        [newHash, userId, companyId],
+      );
+
+      // 6. Revocar todas las sesiones excepto la actual
+      // (esto se maneja en el controller que tiene el sessionId)
+
+      logger.info("Contraseña cambiada", { userId });
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error cambiando contraseña:", error);
+      throw new AuthError(
+        "Error cambiando contraseña",
+        "CHANGE_PASSWORD_ERROR",
+        500,
+      );
+    }
+  }
+
+  /**
+   * Obtener sesiones activas
+   */
+  async getSession(
+    userId: string,
+    companyId: string,
+    currentSessionId?: string,
+  ) {
+    return await sessionService.getUserSessions(
+      userId,
+      companyId,
+      currentSessionId,
+    );
   }
 
   private async sendVerificationEmail(

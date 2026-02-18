@@ -8,7 +8,7 @@ import {
   validate,
 } from "class-validator";
 import { Request, Response } from "express";
-import { AuthService } from "@/services/auth";
+import { sessionService as Session } from "@/services/session";
 
 const authService = new AuthService();
 import {
@@ -19,6 +19,7 @@ import {
   ResetPasswordDTO,
 } from "../types";
 import { logger } from "@/utils/logger";
+import { AuthService } from "@/services/auth";
 
 // DTOs para validación
 class RegisterDTOClass implements RegisterDTO {
@@ -79,6 +80,18 @@ class UpdateProfileDTOClass {
   @IsString()
   @IsNotEmpty()
   fullName?: string;
+}
+
+class ChangePasswordDTOClass {
+  @IsString()
+  @IsNotEmpty()
+  currentPassword!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  @MaxLength(10)
+  newPassword!: string;
 }
 
 export class AuthController {
@@ -261,7 +274,6 @@ export class AuthController {
     }
   }
 
-
   /**
    * @route GET /api/v1/auth/profile
    * @desc Obtener perfil del usuario
@@ -321,13 +333,68 @@ export class AuthController {
       const userInfo = {
         user: authReq.user,
         company: authReq.company,
-        sessionId: authReq.sessionId
+        sessionId: authReq.sessionId,
       };
 
       res.apiSuccess(userInfo, "Información de usuario obtenida");
-
     } catch (error) {
       this.handleError(error, res, "getCurrentUser");
+    }
+  }
+
+  /**
+   * @route POST /api/v1/auth/change-password
+   * @desc Cambiar contraseña
+   * @access Private
+   */
+  async changePassword(req: Request, res: Response): Promise<void> {
+    try {
+      // Validar datos de entrada
+      const authReq = req as AuthRequest;
+      const dto = plainToClass(ChangePasswordDTOClass, req.body);
+      const errors = await validate(dto);
+
+      if (errors.length > 0) {
+        res.status(400).apiValidationError(errors);
+        return;
+      }
+
+      await authService.changePasswordService(
+        authReq.user.id,
+        authReq.company.id,
+        dto,
+      );
+
+      // Cerrar todas las sesiones excepto la actual (por seguridad)
+      await Session.revokeOtherSessions(
+        authReq.sessionId,
+        authReq.user.id,
+        authReq.company.id,
+      );
+
+      res.apiSuccess(null, "Contraseña cambiada exitosamente");
+    } catch (error) {
+      this.handleError(error, res, "changePassword");
+    }
+  }
+
+  /**
+   * @route GET /api/v1/auth/sessions
+   * @desc Obtener sesiones activas
+   * @access Private
+   */
+  async getSessions(req: Request, res: Response) {
+    try {
+      const authReq = req as AuthRequest;
+      const sessions = await authService.getSession(
+        authReq.user.id,
+        authReq.company.id,
+        authReq.sessionId,
+      );
+
+      res.apiSuccess(sessions, "Sesiones obtenidas");
+    } catch (error) {
+      this.handleError(error, res, "getSessions");
     }
   }
 

@@ -284,7 +284,6 @@ export class AuthController {
       const authReq = req as AuthRequest;
       const profile = await authService.getProfile(
         authReq.user.id,
-        authReq.company.id,
       );
 
       res.apiSuccess(profile, "Perfil obtenido");

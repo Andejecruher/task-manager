@@ -1,9 +1,10 @@
-import { db } from "@/database/connection";
 import { sessionService } from "@/services/session";
 import { tokenService } from "@/services/token";
 import { AuthError, AuthRequest, AuthUser } from "@/types";
 import { logger } from "@/utils/logger";
 import { NextFunction, Request, Response } from "express";
+import { User } from "@/database/models/User";
+import { Company } from "@/database/models/Company";
 /**
  * Middleware de autenticación principal
  * Extrae y valida el token JWT del header Authorization
@@ -156,21 +157,13 @@ function getDeviceFromUserAgent(userAgent: string): string {
 
 async function getUserFromPayload(payload: any): Promise<AuthUser | null> {
   try {
-    const result = await db.query(
-      `SELECT 
-        id, email, company_id, role, 
-        full_name, is_active, email_verified,
-        (SELECT ARRAY_AGG(permission) FROM jsonb_array_elements_text(permissions) as permission) as permissions
-       FROM users 
-       WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL`,
-      [payload.userId, payload.companyId],
-    );
+    const result = await User.findByPk(payload.userId);
 
-    if (result.length === 0) {
+    if (!result?.dataValues) {
       return null;
     }
 
-    const user = result[0];
+    const user = result.dataValues;
 
     return {
       id: user.id,
@@ -191,18 +184,13 @@ async function getUserFromPayload(payload: any): Promise<AuthUser | null> {
 
 async function getCompanyFromPayload(payload: any): Promise<any> {
   try {
-    const result = await db.query(
-      `SELECT id, name, slug, plan, settings->'features' as features
-       FROM companies 
-       WHERE id = $1 AND deleted_at IS NULL`,
-      [payload.companyId],
-    );
+    const result = await Company.findByPk(payload.companyId);
 
-    if (result.length === 0) {
+    if (!result?.dataValues) {
       return null;
     }
 
-    const company = result[0];
+    const company = result.dataValues;
 
     return {
       id: company.id,

@@ -17,6 +17,7 @@ import { emailService } from "./email";
 import { passwordService } from "./password";
 import { sessionService } from "./session";
 import { tokenService } from "./token";
+import { User } from "@/database/models/User";
 
 export class AuthService {
   /**
@@ -174,6 +175,7 @@ export class AuthService {
       const isSessionActive = await sessionService.isSessionActive(
         payload.sessionId,
       );
+
       if (!isSessionActive) {
         throw new AuthError(
           "Sesión inválida o expirada",
@@ -544,25 +546,16 @@ export class AuthService {
   /**
    * Obtener perfil de usuario
    */
-  async getProfile(userId: string, companyId: string): Promise<any> {
+  async getProfile(userId: string): Promise<any> {
     try {
-      const result = await db.query(
-        `SELECT 
-          id, email, full_name, avatar_url, role,
-          email_verified, is_active, is_onboarded,
-          timezone, locale, created_at, updated_at,
-          (SELECT COUNT(*) FROM user_sessions 
-           WHERE user_id = $1 AND company_id = $2 AND is_active = true) as active_sessions
-         FROM users 
-         WHERE id = $1 AND company_id = $2`,
-        [userId, companyId],
-      );
 
-      if (result.length === 0) {
+      const result = await User.findByPk(userId);
+
+      if (!result?.dataValues) {
         throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
       }
 
-      return result[0];
+      return result?.dataValues;
     } catch (error) {
       if (error instanceof AuthError) throw error;
       logger.error("Error obteniendo perfil:", error);
@@ -609,7 +602,7 @@ export class AuthService {
       }
 
       if (updates.length === 0) {
-        return await this.getProfile(userId, companyId);
+        return await this.getProfile(userId);
       }
 
       updates.push(`updated_at = NOW()`);

@@ -38,7 +38,7 @@ export class AuthService {
           [data.email],
         );
 
-        if (existingUser.length > 0) {
+        if (existingUser.rowCount > 0) {
           throw new AuthError(
             "El email ya está registrado",
             "EMAIL_ALREADY_EXISTS",
@@ -52,7 +52,7 @@ export class AuthService {
           [data.companySlug],
         );
 
-        if (existingCompany.length > 0) {
+        if (existingCompany.rowCount > 0) {
           throw new AuthError(
             "El nombre de empresa ya está en uso",
             "COMPANY_SLUG_EXISTS",

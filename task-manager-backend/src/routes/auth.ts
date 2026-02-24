@@ -9,6 +9,13 @@ import { Router } from "express";
 
 const router = Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Autenticación y manejo de usuarios
+ */
+
 // ====================
 // RUTAS PÚBLICAS
 // ====================
@@ -18,6 +25,47 @@ const router = Router();
  * @desc Registrar nueva empresa y usuario
  * @access Public
  */
+
+/**
+ * @swagger
+ * /api/v1/auth/register:
+ *   post:
+ *     summary: Registrar nueva empresa y usuario
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - fullName
+ *               - companyName
+ *               - companySlug
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *               fullName:
+ *                 type: string
+ *               companyName:
+ *                 type: string
+ *               companySlug:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Registro exitoso
+ *       400:
+ *         description: Datos inválidos
+ *       409:
+ *         description: Email o compañía ya existe
+ */
+
 router.post(
   "/register",
   extractDeviceInfo,
@@ -28,6 +76,40 @@ router.post(
  * @route POST /api/v1/auth/login
  * @desc Iniciar sesión
  * @access Public
+ */
+
+/**
+ * @swagger
+ * /api/v1/auth/login:
+ *   post:
+ *     summary: Iniciar sesión
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - companySlug
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *               companySlug:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login exitoso
+ *       401:
+ *         description: Credenciales inválidas
+ *       404:
+ *         description: Empresa no encontrada
  */
 router.post(
   "/login",

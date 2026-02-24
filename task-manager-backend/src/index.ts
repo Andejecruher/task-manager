@@ -5,6 +5,7 @@ import { app } from './app';
 import { connectRedis } from './config/redis';
 import { connectDatabase } from './database/connection';
 import { logger } from './utils/logger';
+import { sequelizeConnection } from './database/connection-sequelize';
 
 const PORT = process.env.APP_PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -15,6 +16,13 @@ async function startServer() {
     logger.info('🔌 Conectando a PostgreSQL...');
     await connectDatabase();
     logger.info('✅ PostgreSQL conectado correctamente');
+
+    try {
+      await sequelizeConnection.authenticate();
+      console.log('Connection has been established successfully.');
+    } catch (error) {
+      console.error('Unable to connect to the database:', error);
+    }
 
     // 2. Conectar a Redis (si está configurado)
     if (process.env.REDIS_HOST) {

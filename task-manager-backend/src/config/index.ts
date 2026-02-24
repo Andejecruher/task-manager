@@ -12,9 +12,12 @@ export const config = {
         name: process.env.DB_NAME || 'taskmanager_dev',
         user: process.env.DB_USER || 'taskmanager_user',
         password: process.env.DB_PASSWORD || 'dev_password_123',
+        dialect: 'postgres',
         pool: {
             max: parseInt(process.env.DB_POOL_MAX || '10'),
             min: parseInt(process.env.DB_POOL_MIN || '2'),
+            acquire: 30000,
+            idle: 10000
         },
         ssl: process.env.DB_SSL === 'true',
     },

@@ -39,12 +39,11 @@ interface UserCreationAttributes extends Optional<
   | "is_onboarded"
   | "timezone"
   | "locale"
-> {}
+> { }
 
 class User
   extends Model<UserAttributes, UserCreationAttributes>
-  implements UserAttributes
-{
+  implements UserAttributes {
   public id!: string;
   public company_id!: string;
   public email!: string;
@@ -289,5 +288,18 @@ User.init(
     },
   },
 );
+
+// Configurar asociaciones
+export function setupUserAssociations() {
+  const { UserSession } = require("./UserSession");
+
+  // User tiene muchas UserSessions
+  User.hasMany(UserSession, {
+    foreignKey: "user_id",
+    as: "sessions",
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
+  });
+}
 
 export { User, UserAttributes, UserCreationAttributes };

@@ -18,6 +18,8 @@ import { passwordService } from "./password";
 import { sessionService } from "./session";
 import { tokenService } from "./token";
 import { User } from "@/database/models/User";
+import { Company } from "@/database/models/Company";
+import { sequelizeConnection } from "@/database/connection-sequelize";
 
 export class AuthService {
   /**
@@ -30,136 +32,150 @@ export class AuthService {
     // Validar datos de entrada
     this.validateRegistrationData(data);
 
-    // Iniciar transacción
-    return await db.transaction(async (client) => {
-      try {
-        // 1. Verificar que el email no esté en uso globalmente
-        const existingUser = await client.query(
-          `SELECT id FROM users WHERE email = $1`,
-          [data.email],
+    // Iniciar transacción con Sequelize
+    const transaction = await sequelizeConnection.getSequelize().transaction();
+
+    try {
+      // 1. Verificar que el email no esté en uso globalmente
+      const existingUser = await User.findOne({
+        where: { email: data.email },
+        transaction,
+      });
+
+      if (existingUser) {
+        throw new AuthError(
+          "El email ya está registrado",
+          "EMAIL_ALREADY_EXISTS",
+          409,
         );
+      }
 
-        if (existingUser.rowCount > 0) {
-          throw new AuthError(
-            "El email ya está registrado",
-            "EMAIL_ALREADY_EXISTS",
-            409,
-          );
-        }
+      // 2. Verificar que el slug de compañía esté disponible
+      const existingCompany = await Company.findOne({
+        where: { slug: data.companySlug },
+        transaction,
+      });
 
-        // 2. Verificar que el slug de compañía esté disponible
-        const existingCompany = await client.query(
-          `SELECT id FROM companies WHERE slug = $1`,
-          [data.companySlug],
+      if (existingCompany) {
+        throw new AuthError(
+          "El nombre de empresa ya está en uso",
+          "COMPANY_SLUG_EXISTS",
+          409,
         );
+      }
 
-        if (existingCompany.rowCount > 0) {
-          throw new AuthError(
-            "El nombre de empresa ya está en uso",
-            "COMPANY_SLUG_EXISTS",
-            409,
-          );
-        }
+      // 3. Crear compañía
+      const company = await Company.create(
+        {
+          name: data.companyName,
+          slug: data.companySlug,
+          plan: "free",
+          settings: {},
+          features: {},
+        },
+        { transaction },
+      );
 
-        // 3. Crear compañía
-        const companyResult = await client.query(
-          `INSERT INTO companies 
-                    (name, slug, plan, settings)
-                    VALUES ($1, $2, 'free', '{}'::jsonb)
-                    RETURNING id, name, slug, plan`,
-          [data.companyName, data.companySlug],
-        );
+      // 4. Hash de contraseña
+      const passwordHash = await passwordService.hashPassword(data.password);
 
-        const company = companyResult.rows[0];
+      // 5. Crear usuario owner
+      const user = await User.create(
+        {
+          company_id: company.dataValues.id,
+          email: data.email,
+          password_hash: passwordHash,
+          full_name: data.fullName,
+          role: "owner",
+          email_verified: false,
+        },
+        { transaction },
+      );
 
-        // 4. Hash de contraseña
-        const passwordHash = await passwordService.hashPassword(data.password);
+      // 6. Crear workspace por defecto
+      // TODO: Implementar cuando el modelo Workspace esté disponible
+      // await Workspace.create(
+      //   {
+      //     company_id: company.id,
+      //     name: 'Mi Workspace',
+      //     slug: 'default',
+      //     description: 'Workspace principal',
+      //     created_by: user.id,
+      //   },
+      //   { transaction },
+      // );
 
-        // 5. Crear usuario owner
-        const userResult = await client.query(
-          `INSERT INTO users 
-                    (company_id, email, password_hash, full_name, role, email_verified)
-                    VALUES ($1, $2, $3, $4, 'owner', false)
-                    RETURNING id, email, full_name, role, company_id, email_verified, avatar_url`,
-          [company.id, data.email, passwordHash, data.fullName],
-        );
+      // 7. Generar token de verificación de email
+      const { token: verificationToken } =
+        tokenService.generateEmailVerificationToken(user.dataValues.id, company.dataValues.id);
 
-        const user = userResult.rows[0];
+      // 8. Crear sesión inicial
+      const { sessionId, refreshToken } = await sessionService.createSession(
+        user.dataValues.id,
+        company.dataValues.id,
+        deviceInfo,
+        deviceInfo.ip,
+        transaction
+      );
 
-        // 6. Crear workspace por defecto
-        await client.query(
-          `INSERT INTO workspaces 
-           (company_id, name, slug, description, created_by)
-           VALUES ($1, 'Mi Workspace', 'default', 'Workspace principal', $2)`,
-          [company.id, user.id],
-        );
-
-        // 7. Generar token de verificación de email
-        const { token: verificationToken } =
-          tokenService.generateEmailVerificationToken(user.id, company.id);
-
-        // 8. Crear sesión inicial
-        const { sessionId, refreshToken } = await sessionService.createSession(
-          user.id,
-          company.id,
-          deviceInfo,
-          deviceInfo.ip,
-          client,
-        );
-
-        // 9. Generar access token
-        const { token: accessToken, expiresIn } =
-          tokenService.generateAccessToken({
-            userId: user.id,
-            companyId: company.id,
-            sessionId,
-            role: user.role,
-            email: user.email,
-          });
-
-        // 10. TODO: Enviar email de verificación (implementar después)
-        await this.sendVerificationEmail(
-          user.email,
-          user.full_name,
-          verificationToken,
-        );
-
-        logger.info("Registro exitoso", {
-          userId: user.id,
-          companyId: company.id,
-          email: user.email,
+      // 9. Generar access token
+      const { token: accessToken, expiresIn } =
+        tokenService.generateAccessToken({
+          userId: user.dataValues.id,
+          companyId: company.dataValues.id,
+          sessionId,
+          role: user.dataValues.role,
+          email: user.dataValues.email,
         });
 
-        return {
-          user: {
-            id: user.id,
-            email: user.email,
-            fullName: user.full_name,
-            role: user.role,
-            companyId: user.company_id,
-            emailVerified: user.email_verified,
-            avatarUrl: user.avatar_url,
-          },
-          tokens: {
-            verificationToken, // Para pruebas, en producción no se devuelve
-            accessToken,
-            refreshToken,
-            expiresIn,
-            refreshExpiresIn: 604800, // 7 días en segundos
-          },
-          company: {
-            id: company.id,
-            name: company.name,
-            slug: company.slug,
-            plan: company.plan,
-          },
-        };
-      } catch (error) {
-        if (error instanceof AuthError) throw error;
-        logger.error("Error en registro:", error);
-        throw new AuthError("Error en el registro", "REGISTRATION_ERROR", 500);
-      }
-    });
+      // 10. Enviar email de verificación
+      await this.sendVerificationEmail(
+        user.dataValues.email,
+        user.dataValues.full_name || data.fullName,
+        verificationToken,
+      );
+
+      // Confirmar transacción
+      await transaction.commit();
+
+      logger.info("Registro exitoso", {
+        userId: user.dataValues.id,
+        companyId: company.dataValues.id,
+        email: user.dataValues.email,
+      });
+
+      return {
+        user: {
+          id: user.dataValues.id,
+          email: user.dataValues.email,
+          fullName: user.dataValues.full_name,
+          role: user.dataValues.role,
+          companyId: user.dataValues.company_id,
+          emailVerified: user.dataValues.email_verified,
+          avatarUrl: user.avatar_url,
+        },
+        tokens: {
+          verificationToken, // Para pruebas, en producción no se devuelve
+          accessToken,
+          refreshToken,
+          expiresIn,
+          refreshExpiresIn: 604800, // 7 días en segundos
+        },
+        company: {
+          id: company.dataValues.id,
+          name: company.dataValues.name,
+          slug: company.dataValues.slug,
+          plan: company.dataValues.plan,
+        },
+      };
+    } catch (error) {
+      // Revertir transacción en caso de error
+      await transaction.rollback();
+
+      if (error instanceof AuthError) throw error;
+      logger.error("Error en registro:", error);
+      throw new AuthError("Error en el registro", "REGISTRATION_ERROR", 500);
+    }
   }
 
   async refreshTokens(refreshToken: string): Promise<{
@@ -426,7 +442,7 @@ export class AuthService {
         tokenService.generateResetPasswordToken(user.id, company.id);
 
       // 4. TODO: Enviar email con token (implementar después)
-      // await this.sendPasswordResetEmail(user.email, user.full_name, resetToken, expiresAt);
+      await this.sendPasswordResetEmail(user.email, user.full_name, resetToken, expiresAt);
 
       logger.info("Solicitud de reset de contraseña", {
         userId: user.id,
@@ -731,6 +747,20 @@ export class AuthService {
       await emailService.sendEmail(to, subject, text, html);
     } catch (error) {
       logger.error("Error enviando email de verificación:", error);
+    }
+  }
+
+  private async sendPasswordResetEmail(to: string, fullName: string, resetToken: string, expiresAt: Date) {
+    if (!to || !fullName || !resetToken || !expiresAt) return;
+
+    try {
+      const resetLink = `${config.app.frontendUrl}/reset-password?token=${resetToken}`;
+      const subject = "Restablece tu contraseña";
+      const text = `Hola ${fullName},\n\nPor favor restablece tu contraseña haciendo clic en el siguiente enlace:\n${resetLink}\n\nSi no solicitaste esto, ignora este mensaje.`;
+      const html = `<p>Hola ${fullName},</p><p>Por favor restablece tu contraseña haciendo clic en el siguiente enlace:</p><a href="${resetLink}">Restablecer Contraseña</a><p>Si no solicitaste esto, ignora este mensaje.</p>`;
+      await emailService.sendEmail(to, subject, text, html);
+    } catch (error) {
+      logger.error("Error enviando email de reseteo de contraseña:", error);
     }
   }
 

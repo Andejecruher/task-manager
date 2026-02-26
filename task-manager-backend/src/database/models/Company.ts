@@ -23,13 +23,12 @@ interface CompanyAttributes {
 interface CompanyCreationAttributes extends Optional<
   CompanyAttributes,
   "id" | "settings" | "features" | "plan"
-> {}
+> { }
 
 // Clase del modelo
 class Company
   extends Model<CompanyAttributes, CompanyCreationAttributes>
-  implements CompanyAttributes
-{
+  implements CompanyAttributes {
   public id!: string;
   public name!: string;
   public slug!: string;
@@ -153,8 +152,9 @@ Company.init(
     underscored: true,
     paranoid: true, // soft delete
     hooks: {
-      beforeCreate: () => {
+      beforeCreate: (company: Company) => {
         // Validaciones o transformaciones antes de crear
+        console.log(`🏢 Iniciando creacion de Compañía: ${company.name}`)
       },
       afterCreate: (company: Company) => {
         // Logging, notificaciones, etc.
@@ -175,5 +175,18 @@ Company.init(
     ],
   },
 );
+
+// Configurar asociaciones
+export function setupCompanyAssociations() {
+  const { UserSession } = require("./UserSession");
+
+  // Company tiene muchas UserSessions
+  Company.hasMany(UserSession, {
+    foreignKey: "company_id",
+    as: "sessions",
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
+  });
+}
 
 export { Company, CompanyAttributes, CompanyCreationAttributes };

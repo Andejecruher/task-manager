@@ -17,7 +17,7 @@ import {
   LoginDTO,
   RegisterDTO,
   ResetPasswordDTO,
-} from "../types";
+} from "@/types";
 import { logger } from "@/utils/logger";
 import { AuthService } from "@/services/auth";
 

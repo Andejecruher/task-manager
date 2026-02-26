@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import { sequelizeConnection } from "@/database/connection-sequelize";
+import { DeviceInfo } from "@/types";
 
 interface UserSessionAttributes {
   id: string;
@@ -7,31 +8,31 @@ interface UserSessionAttributes {
   user_id: string;
   session_token: string;
   refresh_token: string;
-  devices_info: Record<string, unknown>;
+  device_info: DeviceInfo;
   ip_address: string;
   is_active: boolean;
   last_activity_at: Date;
   expires_at: Date;
   refresh_token_expires_at: Date;
   created_at?: Date;
+  updated_at?: Date;
   revoked_at?: Date | null;
 }
 
 interface UserSessionCreationAttributes extends Optional<
   UserSessionAttributes,
   "id" | "created_at" | "revoked_at"
-> {}
+> { }
 
 class UserSession
   extends Model<UserSessionAttributes, UserSessionCreationAttributes>
-  implements UserSessionAttributes
-{
+  implements UserSessionAttributes {
   public id!: string;
   public company_id!: string;
   public user_id!: string;
   public session_token!: string;
   public refresh_token!: string;
-  public devices_info!: Record<string, unknown>;
+  public device_info!: DeviceInfo;
   public ip_address!: string;
   public is_active!: boolean;
   public last_activity_at!: Date;
@@ -40,7 +41,12 @@ class UserSession
 
   // Timestamps
   public readonly created_at!: Date;
+  public readonly updated_at!: Date;
   public readonly revoked_at?: Date | null;
+
+  // Asociaciones
+  public readonly company?: any;
+  public readonly user?: any;
 }
 
 UserSession.init(
@@ -78,8 +84,8 @@ UserSession.init(
       allowNull: false,
       unique: true,
     },
-    devices_info: {
-      type: DataTypes.JSONB,
+    device_info: {
+      type: DataTypes.JSON,
       allowNull: true,
       defaultValue: {},
     },
@@ -107,6 +113,10 @@ UserSession.init(
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
+    updated_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
     revoked_at: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -116,9 +126,10 @@ UserSession.init(
   {
     sequelize: sequelizeConnection.getSequelize(),
     modelName: "UserSession",
-    tableName: "Usersessions",
+    tableName: "user_sessions",
     underscored: true,
     paranoid: true,
+    timestamps: false,
     indexes: [
       {
         unique: true,

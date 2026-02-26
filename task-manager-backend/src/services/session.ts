@@ -1,9 +1,10 @@
 import { v4 as uuidv4 } from "uuid";
-import { getRedisClient } from "../config/redis";
-import { db } from "../database/connection";
-import { AuthError, DeviceInfo, SessionInfo } from "../types";
-import { logger } from "../utils/logger";
-import { tokenService } from "./token";
+import { getRedisClient } from "@/config/redis";
+import { AuthError, DeviceInfo, SessionInfo } from "@/types";
+import { logger } from "@/utils/logger";
+import { tokenService } from "@/services/token";
+import { UserSession } from "@/database/models/UserSession";
+import { Op, Transaction } from "sequelize";
 
 export class SessionService {
   /**
@@ -14,12 +15,12 @@ export class SessionService {
     companyId: string,
     deviceInfo: DeviceInfo,
     ipAddress?: string,
-    client?: any,
+    transaction?: Transaction,
   ): Promise<{ sessionId: string; refreshToken: string }> {
     try {
-      const dbClient = client || db;
       // Generar ID de sesión único
       const sessionId = this.generateSessionId();
+      console.log("🚀 ~ SessionService ~ createSession ~ sessionId:", sessionId)
 
       // Almacenar sesión en Redis
       await tokenService.storeSession(sessionId, userId, companyId, {
@@ -28,19 +29,19 @@ export class SessionService {
       });
 
       // Almacenar en PostgreSQL para auditoría
-      await dbClient.query(
-        `INSERT INTO user_sessions 
-         (id, company_id, user_id, session_token, device_info, ip_address, expires_at, refresh_token_expires_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW() + INTERVAL '15 minutes', NOW() + INTERVAL '7 days')`,
-        [
-          sessionId,
-          companyId,
-          userId,
-          sessionId, // session_token es el mismo ID para simplificar
-          JSON.stringify(deviceInfo),
-          ipAddress,
-        ],
-      );
+      await UserSession.create({
+        id: sessionId,
+        company_id: companyId,
+        user_id: userId,
+        device_info: deviceInfo,
+        ip_address: ipAddress || "",
+        is_active: true,
+        last_activity_at: new Date(),
+        expires_at: new Date(Date.now() + 15 * 60 * 1000),
+        refresh_token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        session_token: sessionId,
+        refresh_token: sessionId
+      }, { transaction: transaction ? transaction : undefined })
 
       // Generar refresh token
       const { token: refreshToken } = tokenService.generateRefreshToken({
@@ -76,22 +77,10 @@ export class SessionService {
     currentSessionId?: string,
   ): Promise<SessionInfo[]> {
     try {
-      // Obtener sesiones de PostgreSQL
-      const sessions = await db.query(
-        `SELECT 
-          id, 
-          device_info, 
-          last_activity_at, 
-          created_at,
-          is_active
-         FROM user_sessions 
-         WHERE user_id = $1 
-           AND company_id = $2 
-           AND is_active = true
-           AND expires_at > NOW()
-         ORDER BY last_activity_at DESC`,
-        [userId, companyId],
-      );
+
+      const sessions = await UserSession.findAll({
+        where: { user_id: userId, company_id: companyId }
+      })
 
       // Obtener sesiones activas de Redis
       const redisKeys = await getRedisClient().keys(
@@ -135,12 +124,11 @@ export class SessionService {
       await tokenService.invalidateSession(sessionId);
 
       // Marcar como inactiva en PostgreSQL
-      await db.query(
-        `UPDATE user_sessions 
-         SET is_active = false, revoked_at = NOW() 
-         WHERE id = $1 AND user_id = $2 AND company_id = $3`,
-        [sessionId, userId, companyId],
-      );
+      await UserSession.update({
+        is_active: false,
+        refresh_token: new Date().getTime().toString(),
+        revoked_at: new Date()
+      }, { where: { id: sessionId, user_id: userId, company_id: companyId } })
 
       logger.info("Sesión revocada", { sessionId, userId, companyId });
     } catch (error) {
@@ -161,14 +149,11 @@ export class SessionService {
       // Invalidar todos los tokens en Redis
       await tokenService.invalidateUserTokens(userId, companyId);
 
-      // Marcar todas como inactivas en PostgreSQL
-      const result = await db.query(
-        `UPDATE user_sessions 
-         SET is_active = false, revoked_at = NOW() 
-         WHERE user_id = $1 AND company_id = $2 AND is_active = true
-         RETURNING id`,
-        [userId, companyId],
-      );
+      // Marcar todas como inactivas
+      const result = await UserSession.update({
+        is_active: false,
+        revoked_at: new Date()
+      }, { where: { user_id: userId, company_id: companyId } })
 
       logger.info("Todas las sesiones revocadas", {
         userId,
@@ -236,12 +221,10 @@ export class SessionService {
       await tokenService.updateSessionActivity(sessionId);
 
       // Actualizar en PostgreSQL
-      await db.query(
-        `UPDATE user_sessions 
-         SET last_activity_at = NOW() 
-         WHERE id = $1 AND is_active = true`,
-        [sessionId],
-      );
+      await UserSession.update({
+        last_activity_at: new Date()
+      }, { where: { id: sessionId } })
+
     } catch (error) {
       logger.error("Error actualizando actividad de sesión:", error);
       // No lanzamos error porque no es crítico
@@ -261,13 +244,11 @@ export class SessionService {
       }
 
       // Verificar en PostgreSQL para consistencia
-      const result = await db.query(
-        `SELECT 1 FROM user_sessions 
-         WHERE id = $1 AND is_active = true AND expires_at > NOW()`,
-        [sessionId],
-      );
+      const result = await UserSession.findOne({
+        where: { id: sessionId, is_active: true, expires_at: { [Op.gt]: new Date() } }
+      });
 
-      return result.length > 0;
+      return result !== null;
     } catch (error) {
       logger.error("Error verificando sesión:", error);
       return false;
@@ -279,24 +260,16 @@ export class SessionService {
    */
   async getSessionDetails(sessionId: string): Promise<any> {
     try {
-      const result = await db.query(
-        `SELECT 
-          us.*,
-          u.email,
-          u.full_name,
-          c.name as company_name
-         FROM user_sessions us
-         JOIN users u ON us.user_id = u.id
-         JOIN companies c ON us.company_id = c.id
-         WHERE us.id = $1`,
-        [sessionId],
-      );
 
-      if (result.length === 0) {
+      const result = await UserSession.findOne({
+        where: { id: sessionId }
+      });
+
+      if (result === null) {
         throw new AuthError("Sesión no encontrada", "SESSION_NOT_FOUND", 404);
       }
 
-      return result[0];
+      return result;
     } catch (error) {
       if (error instanceof AuthError) throw error;
       logger.error("Error obteniendo detalles de sesión:", error);
@@ -314,20 +287,15 @@ export class SessionService {
   async cleanupExpiredSessions(): Promise<{ deletedCount: number }> {
     try {
       // Eliminar sesiones expiradas de PostgreSQL
-      const result = await db.query(
-        `DELETE FROM user_sessions 
-         WHERE expires_at < NOW() - INTERVAL '1 day'
-         RETURNING id`,
-      );
-
-      // Eliminar sesiones expiradas de Redis
-      // Nota: Redis expira automáticamente con TTL
-
-      logger.info("Sesiones expiradas limpiadas", {
-        deletedCount: result.length,
+      const result = await UserSession.destroy({
+        where: { expires_at: { [Op.lt]: new Date() } }
       });
 
-      return { deletedCount: result.length };
+      logger.info("Sesiones expiradas limpiadas", {
+        deletedCount: result,
+      });
+
+      return { deletedCount: result };
     } catch (error) {
       logger.error("Error limpiando sesiones expiradas:", error);
       return { deletedCount: 0 };

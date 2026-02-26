@@ -118,26 +118,20 @@ export interface UpdateProfileDTO {
 // SESIONES Y DISPOSITIVOS
 // ====================
 
-export interface SessionInfo {
-    id: string;
-    deviceInfo: {
-        browser?: string;
-        os?: string;
-        device?: string;
-        ip?: string;
-        userAgent?: string;
-    };
-    lastActivityAt: Date;
-    createdAt: Date;
-    isCurrent: boolean;
-}
-
 export interface DeviceInfo {
     browser?: string;
     os?: string;
     device?: string;
     ip?: string;
     userAgent?: string;
+}
+
+export interface SessionInfo {
+    id: string;
+    deviceInfo: DeviceInfo
+    lastActivityAt: Date;
+    createdAt: Date;
+    isCurrent: boolean;
 }
 
 // ====================

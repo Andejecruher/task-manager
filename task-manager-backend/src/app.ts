@@ -8,11 +8,11 @@ import morgan from 'morgan';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
-import { apiResponse } from './middlewares/api-response';
-import { errorHandler } from './middlewares/error';
-import { requestId } from './middlewares/request-id';
-import router from './routes';
-import { logger } from './utils/logger';
+import { apiResponse } from '@/middlewares/api-response';
+import { errorHandler } from '@/middlewares/error';
+import { requestId } from '@/middlewares/request-id';
+import router from '@/routes';
+import { logger } from '@/utils/logger';
 
 // Configuración de Swagger
 const swaggerOptions = {

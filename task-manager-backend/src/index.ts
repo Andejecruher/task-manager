@@ -2,10 +2,11 @@
 
 import "dotenv/config";
 import { app } from "./app";
-import { connectRedis } from "./config/redis";
-import { connectDatabase } from "./database/connection";
-import { logger } from "./utils/logger";
-import { sequelizeConnection } from "./database/connection-sequelize";
+import { connectRedis } from "@/config/redis";
+import { connectDatabase } from "@/database/connection";
+import { logger } from "@/utils/logger";
+import { sequelizeConnection } from "@/database/connection-sequelize";
+import { initializeAssociations } from "@/database/models";
 
 const PORT = process.env.APP_PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
@@ -20,6 +21,10 @@ async function startServer() {
     try {
       await sequelizeConnection.authenticate();
       console.log("Connection has been established successfully.");
+
+      // Inicializar asociaciones entre modelos
+      initializeAssociations();
+      logger.info("✅ Asociaciones de modelos inicializadas");
     } catch (error) {
       console.error("Unable to connect to the database:", error);
     }

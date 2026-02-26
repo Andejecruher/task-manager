@@ -548,7 +548,6 @@ export class AuthService {
    */
   async getProfile(userId: string): Promise<any> {
     try {
-
       const result = await User.findByPk(userId);
 
       if (!result?.dataValues) {

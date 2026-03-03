@@ -1,6 +1,8 @@
-import { Op } from "sequelize";
 import { config } from "@/config";
 import { db } from "@/database/connection";
+import { sequelizeConnection } from "@/database/connection-sequelize";
+import { Company } from "@/database/models/Company";
+import { User } from "@/database/models/User";
 import {
   AuthError,
   ChangePasswordDTO,
@@ -14,13 +16,11 @@ import {
   UpdateProfileDTO,
 } from "@/types";
 import { logger } from "@/utils/logger";
+import { Op } from "sequelize";
 import { emailService } from "./email";
 import { passwordService } from "./password";
 import { sessionService } from "./session";
 import { tokenService } from "./token";
-import { User } from "@/database/models/User";
-import { Company } from "@/database/models/Company";
-import { sequelizeConnection } from "@/database/connection-sequelize";
 
 export class AuthService {
   /**
@@ -643,7 +643,7 @@ export class AuthService {
         where: {
           id: userId,
           company_id: companyId,
-          deleted_at: { [Op.eq]: null }, // Asegurar que no está eliminado
+          deleted_at: { [Op.eq]: undefined }, // Asegurar que no está eliminado
         },
         attributes: ["id", "password_hash"], // Solo traemos lo necesario
       });

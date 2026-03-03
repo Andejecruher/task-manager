@@ -85,7 +85,7 @@ UserSession.init(
       unique: true,
     },
     device_info: {
-      type: DataTypes.JSON,
+      type: DataTypes.JSONB,
       allowNull: true,
       defaultValue: {},
     },

@@ -9,7 +9,7 @@ interface InvitationAttributes {
   role: string;
   invited_by: string;
   workspace_id?: string;
-  status: "pending" | "accepted" | "declined" | "expired";
+  status: "pending" | "accepted" | "expired" | "revoked";
   accepted_at?: Date;
   expires_at: Date;
   created_at?: Date;
@@ -18,19 +18,18 @@ interface InvitationAttributes {
 interface InvitationCreationAttributes extends Optional<
   InvitationAttributes,
   "id" | "created_at" | "status" | "accepted_at" | "workspace_id"
-> {}
+> { }
 
 class Invitation
   extends Model<InvitationAttributes, InvitationCreationAttributes>
-  implements InvitationAttributes
-{
+  implements InvitationAttributes {
   public id!: string;
   public company_id!: string;
   public email!: string;
   public token!: string;
   public role!: string;
   public workspace_id?: string;
-  public status!: "pending" | "accepted" | "declined" | "expired";
+  public status!: "pending" | "accepted" | "expired" | "revoked";
   public accepted_at?: Date;
   public invited_by!: string;
   public expires_at!: Date;
@@ -91,7 +90,7 @@ Invitation.init(
       },
     },
     status: {
-      type: DataTypes.ENUM("pending", "accepted", "declined", "expired"),
+      type: DataTypes.ENUM("pending", "accepted", "expired", "revoked"),
       defaultValue: "pending",
     },
     accepted_at: {
@@ -115,13 +114,13 @@ Invitation.init(
     timestamps: false,
     //paranoid: true,
     indexes: [
-      { fields: ["status"] }, // Para filtrar por estado
-      { fields: ["expires_at"] }, // Para limpiar expiradas
-      { fields: ["invited_by"] }, // Para auditoría
-
+      { fields: ["status"] },
+      { fields: ["expires_at"] },
+      { fields: ["invited_by"] },
       {
         unique: true,
         fields: ["company_id", "email"],
+        where: { status: "pending" },
       },
       {
         fields: ["token"],

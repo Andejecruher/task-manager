@@ -1,9 +1,17 @@
-import { Company, setupCompanyAssociations } from "./Company";
-import { User, setupUserAssociations } from "./User";
-import { UserSession } from "./UserSession";
-import { AuditLogs } from "./AuditLogs";
-import { Invitation } from "./Invitation";
-import { Notification } from "./Notification";
+import { Company, setupCompanyAssociations } from "@/database/models/Company";
+import { User, setupUserAssociations } from "@/database/models/User";
+import { UserSession } from "@/database/models/UserSession";
+import { AuditLogs } from "@/database/models/AuditLogs";
+import { Invitation } from "@/database/models/Invitation";
+import { Notification } from "@/database/models/Notification";
+import { Workspace, setupWorkspaceAssociations } from "@/database/models/Workspace";
+import { WorkspaceMember, setupWorkspaceMemberAssociations } from "@/database/models/WorkspaceMember";
+import { Board, setupBoardAssociations } from "@/database/models/Board";
+import { BoardColumn, setupBoardColumnAssociations } from "@/database/models/BoardColumn";
+import { Task, setupTaskAssociations } from "@/database/models/Task";
+import { TaskComment, setupTaskCommentAssociations } from "@/database/models/TaskComment";
+import { TaskAttachment, setupTaskAttachmentAssociations } from "@/database/models/TaskAttachment";
+import { TaskHistory, setupTaskHistoryAssociations } from "@/database/models/TaskHistory";
 
 export {
   Company,
@@ -12,6 +20,14 @@ export {
   AuditLogs,
   Invitation,
   Notification,
+  Workspace,
+  WorkspaceMember,
+  Board,
+  BoardColumn,
+  Task,
+  TaskComment,
+  TaskAttachment,
+  TaskHistory,
 };
 
 /**
@@ -21,4 +37,12 @@ export {
 export function initializeAssociations() {
   setupCompanyAssociations();
   setupUserAssociations();
+  setupWorkspaceAssociations();
+  setupWorkspaceMemberAssociations();
+  setupBoardAssociations();
+  setupBoardColumnAssociations();
+  setupTaskAssociations();
+  setupTaskCommentAssociations();
+  setupTaskAttachmentAssociations();
+  setupTaskHistoryAssociations();
 }

@@ -7,16 +7,16 @@ interface CompanyAttributes {
   name: string;
   slug: string;
   website?: string;
-  logoUrl?: string;
+  logo_url?: string;
   plan: string;
-  billingEmail?: string;
-  subscriptionId?: string;
-  trialEndsAt?: Date;
+  billing_email?: string;
+  subscription_id?: string;
+  trial_ends_at?: Date;
   settings: object;
   features: object;
-  createdAt?: Date;
-  updatedAt?: Date;
-  deletedAt?: Date;
+  created_at?: Date;
+  updated_at?: Date;
+  deleted_at?: Date;
 }
 
 // Atributos para creación (id opcional)
@@ -33,37 +33,37 @@ class Company
   public name!: string;
   public slug!: string;
   public website?: string;
-  public logoUrl?: string;
+  public logo_url?: string;
   public plan!: string;
-  public billingEmail?: string;
-  public subscriptionId?: string;
-  public trialEndsAt?: Date;
+  public billing_email?: string;
+  public subscription_id?: string;
+  public trial_ends_at?: Date;
   public settings!: object;
   public features!: object;
 
   // Timestamps
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-  public readonly deletedAt?: Date;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+  public readonly deleted_at?: Date;
 
   // Métodos personalizados
   async getActiveUsersCount(): Promise<number> {
-    const { User } = require("./User.model");
+    const { User } = require("./User");
     return await User.count({
       where: {
-        companyId: this.id,
-        isActive: true,
-        deletedAt: null,
+        company_id: this.id,
+        is_active: true,
+        deleted_at: null,
       },
     });
   }
 
   async getWorkspacesCount(): Promise<number> {
-    const { Workspace } = require("./Workspace.model");
+    const { Workspace } = require("./Workspace");
     return await Workspace.count({
       where: {
-        companyId: this.id,
-        deletedAt: null,
+        company_id: this.id,
+        deleted_at: null,
       },
     });
   }
@@ -104,25 +104,29 @@ Company.init(
         isUrl: true,
       },
     },
-    logoUrl: {
+    logo_url: {
       type: DataTypes.TEXT,
+      field: "logo_url",
     },
     plan: {
       type: DataTypes.ENUM("free", "starter", "pro", "enterprise"),
       defaultValue: "free",
       allowNull: false,
     },
-    billingEmail: {
+    billing_email: {
       type: DataTypes.STRING(255),
+      field: "billing_email",
       validate: {
         isEmail: true,
       },
     },
-    subscriptionId: {
+    subscription_id: {
       type: DataTypes.STRING(255),
+      field: "subscription_id",
     },
-    trialEndsAt: {
+    trial_ends_at: {
       type: DataTypes.DATE,
+      field: "trial_ends_at",
     },
     settings: {
       type: DataTypes.JSONB,
@@ -132,15 +136,15 @@ Company.init(
       type: DataTypes.JSONB,
       defaultValue: {},
     },
-    createdAt: {
+    created_at: {
       type: DataTypes.DATE,
       field: "created_at",
     },
-    updatedAt: {
+    updated_at: {
       type: DataTypes.DATE,
       field: "updated_at",
     },
-    deletedAt: {
+    deleted_at: {
       type: DataTypes.DATE,
       field: "deleted_at",
     },

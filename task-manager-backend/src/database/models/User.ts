@@ -1,12 +1,19 @@
-import { DataTypes, Model, Optional } from "sequelize";
-import { sequelizeConnection } from "@/database/connection-sequelize";
+import {
+  DataTypes,
+  Model,
+  Optional,
+  BelongsToManyGetAssociationsMixin,
+  HasManyGetAssociationsMixin,
+  Op
+} from 'sequelize';
+import { sequelizeConnection } from '@/database/connection-sequelize';
 
 interface UserAttributes {
   id: string;
   company_id: string;
   email: string;
   email_verified: boolean;
-  password_hash: string;
+  password_hash?: string;
   full_name?: string;
   avatar_url?: string;
   phone?: string;
@@ -25,24 +32,15 @@ interface UserAttributes {
   data_retention_until?: Date;
   created_at?: Date;
   updated_at?: Date;
-  deleted_at?: Date | null;
+  deleted_at?: Date;
 }
 
-interface UserCreationAttributes extends Optional<
-  UserAttributes,
-  | "id"
-  | "email_verified"
-  | "mfa_enabled"
-  | "failed_login_attempts"
-  | "permissions"
-  | "is_active"
-  | "is_onboarded"
-  | "timezone"
-  | "locale"
+interface UserCreationAttributes extends Optional<UserAttributes,
+  'id' | 'email_verified' | 'mfa_enabled' | 'failed_login_attempts' |
+  'permissions' | 'is_active' | 'is_onboarded' | 'timezone' | 'locale'
 > { }
 
-class User
-  extends Model<UserAttributes, UserCreationAttributes>
+class User extends Model<UserAttributes, UserCreationAttributes>
   implements UserAttributes {
   public id!: string;
   public company_id!: string;
@@ -69,17 +67,18 @@ class User
   // Timestamps
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
-  public readonly deleted_at?: Date | null;
+  public readonly deleted_at?: Date;
 
   // Métodos de asociación (generados por Sequelize)
-  // public getWorkspaces!: BelongsToManyGetAssociationsMixin<Workspace>;
-  // public getCreatedTasks!: HasManyGetAssociationsMixin<Task>;
-  // public getAssignedTasks!: HasManyGetAssociationsMixin<Task>;
+  public getWorkspaces!: BelongsToManyGetAssociationsMixin<any>;
+  public getCreatedTasks!: HasManyGetAssociationsMixin<any>;
+  public getAssignedTasks!: HasManyGetAssociationsMixin<any>;
 
   // Propiedades de asociación
-  // public readonly workspaces?: Workspace[];
-  // public readonly createdTasks?: Task[];
-  // public readonly assignedTasks?: Task[];
+  public readonly workspaces?: any[];
+  public readonly created_tasks?: any[];
+  public readonly assigned_tasks?: any[];
+  public readonly company?: any;
 
   // Métodos personalizados
   async isLocked(): Promise<boolean> {
@@ -103,28 +102,26 @@ class User
   }
 
   async hasPermission(permission: string): Promise<boolean> {
-    return (
-      this.permissions.includes(permission) ||
-      ["owner", "admin"].includes(this.role)
-    );
+    return this.permissions.includes(permission) ||
+      ['owner', 'admin'].includes(this.role);
   }
 
-  // async getActiveSessionsCount(): Promise<number> {
-  //     const { UserSession } = require('./UserSession.model');
-  //     return await UserSession.count({
-  //         where: {
-  //             userId: this.id,
-  //             isActive: true,
-  //             expiresAt: { [Op.gt]: new Date() }
-  //         }
-  //     });
-  // }
+  async getActiveSessionsCount(): Promise<number> {
+    const { UserSession } = require('./UserSession.model');
+    return await UserSession.count({
+      where: {
+        user_id: this.id,
+        is_active: true,
+        expires_at: { [Op.gt]: new Date() }
+      }
+    });
+  }
 
   toJSON() {
-    const { password_hash, mfa_secret, ...sanitizedValues } = this.get({
-      plain: true,
-    }) as UserAttributes;
-    return sanitizedValues;
+    const values = Object.assign({}, this.get());
+    delete values.password_hash;
+    delete values.mfa_secret;
+    return values;
   }
 }
 
@@ -133,172 +130,192 @@ User.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      primaryKey: true
     },
     company_id: {
       type: DataTypes.UUID,
       allowNull: false,
-      field: "company_id",
+      field: 'company_id',
       references: {
-        model: "companies",
-        key: "id",
-      },
+        model: 'companies',
+        key: 'id'
+      }
     },
     email: {
       type: DataTypes.STRING(255),
       allowNull: false,
+      field: 'email',
       validate: {
         isEmail: true,
-        notEmpty: true,
-      },
+        notEmpty: true
+      }
     },
     email_verified: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-      field: "email_verified",
+      field: 'email_verified'
     },
     password_hash: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      field: "password_hash",
+      field: 'password_hash'
     },
     full_name: {
       type: DataTypes.STRING(255),
-      field: "full_name",
+      field: 'full_name'
     },
     avatar_url: {
       type: DataTypes.TEXT,
-      field: "avatar_url",
+      field: 'avatar_url'
     },
     phone: {
       type: DataTypes.STRING(50),
+      field: 'phone'
     },
     timezone: {
       type: DataTypes.STRING(50),
-      defaultValue: "UTC",
+      defaultValue: 'UTC',
+      field: 'timezone'
     },
     locale: {
       type: DataTypes.STRING(10),
-      defaultValue: "es-ES",
+      defaultValue: 'es-ES',
+      field: 'locale'
     },
     mfa_enabled: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-      field: "mfa_enabled",
+      field: 'mfa_enabled'
     },
     mfa_secret: {
       type: DataTypes.STRING(255),
-      field: "mfa_secret",
+      field: 'mfa_secret'
     },
     last_login_at: {
       type: DataTypes.DATE,
-      field: "last_login_at",
+      field: 'last_login_at'
     },
     failed_login_attempts: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
-      field: "failed_login_attempts",
+      field: 'failed_login_attempts'
     },
     locked_until: {
       type: DataTypes.DATE,
-      field: "locked_until",
+      field: 'locked_until'
     },
     role: {
-      type: DataTypes.ENUM("owner", "admin", "manager", "member", "viewer"),
-      defaultValue: "member",
+      type: DataTypes.ENUM('owner', 'admin', 'manager', 'member', 'viewer'),
+      defaultValue: 'member',
       allowNull: false,
+      field: 'role'
     },
     permissions: {
       type: DataTypes.JSONB,
       defaultValue: [],
+      field: 'permissions'
     },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
-      field: "is_active",
+      field: 'is_active'
     },
     is_onboarded: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-      field: "is_onboarded",
+      field: 'is_onboarded'
     },
     gdpr_consent_at: {
       type: DataTypes.DATE,
-      field: "gdpr_consent_at",
+      field: 'gdpr_consent_at'
     },
     data_retention_until: {
       type: DataTypes.DATE,
-      field: "data_retention_until",
-    },
+      field: 'data_retention_until'
+    }
   },
   {
     sequelize: sequelizeConnection.getSequelize(),
-    modelName: "User",
-    tableName: "users",
+    modelName: 'User',
+    tableName: 'users',
     underscored: true,
     paranoid: true,
     indexes: [
       {
         unique: true,
-        fields: ["company_id", "email"],
+        fields: ['company_id', 'email']
       },
       {
-        fields: ["email"],
+        fields: ['email']
       },
       {
-        fields: ["role"],
+        fields: ['role']
       },
       {
-        fields: ["is_active"],
-      },
+        fields: ['is_active']
+      }
     ],
     defaultScope: {
-      attributes: {
-        exclude: [
-          "password_hash",
-          "mfa_secret",
-          "mfa_enabled",
-          "failed_login_attempts",
-          "locked_until",
-          "last_login_at",
-          "gdpr_consent_at",
-          "data_retention_until",
-          "created_at",
-          "updated_at",
-          "deleted_at",
-        ],
+      where: {
+        deleted_at: undefined
       },
+      attributes: {
+        exclude: ['password_hash', 'mfa_secret']
+      }
     },
     scopes: {
       withPassword: {
         attributes: {
-          include: ["password_hash"],
-        },
+          include: ['password_hash']
+        }
       },
       active: {
         where: {
           is_active: true,
-        },
+          deleted_at: undefined
+        }
       },
       owners: {
         where: {
-          role: "owner",
-        },
-      },
-    },
-  },
+          role: 'owner'
+        }
+      }
+    }
+  }
 );
 
-// Configurar asociaciones
 export function setupUserAssociations() {
-  const { UserSession } = require("./UserSession");
+  const Company = require('./Company').Company;
+  const Workspace = require('./Workspace').Workspace;
+  const Task = require('./Task').Task;
+  const WorkspaceMember = require('./WorkspaceMember').WorkspaceMember;
 
-  // User tiene muchas UserSessions
-  User.hasMany(UserSession, {
-    foreignKey: "user_id",
-    as: "sessions",
-    onDelete: "CASCADE",
-    onUpdate: "CASCADE",
+  (User as any).belongsTo(Company, {
+    foreignKey: 'company_id',
+    as: 'company',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE'
+  });
+
+  (User as any).belongsToMany(Workspace, {
+    through: WorkspaceMember,
+    foreignKey: 'user_id',
+    otherKey: 'workspace_id',
+    as: 'workspaces'
+  });
+
+  (User as any).hasMany(Task, {
+    foreignKey: 'created_by',
+    as: 'created_tasks',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE'
+  });
+
+  (User as any).hasMany(Task, {
+    foreignKey: 'assigned_to',
+    as: 'assigned_tasks',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE'
   });
 }
 

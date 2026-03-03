@@ -19,12 +19,11 @@ interface NotificationAttributes {
 interface NotificationCreationAttributes extends Optional<
   NotificationAttributes,
   "id" | "is_read" | "is_archived" | "created_at" | "read_at" | "expires_at"
-> {}
+> { }
 
 class Notification
   extends Model<NotificationAttributes, NotificationCreationAttributes>
-  implements NotificationAttributes
-{
+  implements NotificationAttributes {
   public id!: string;
   public company_id!: string;
   public user_id!: string;
@@ -44,12 +43,12 @@ class Notification
 Notification.init(
   {
     id: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
     company_id: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: false,
       field: "company_id",
       references: {
@@ -58,7 +57,7 @@ Notification.init(
       },
     },
     user_id: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: false,
       field: "user_id",
       references: {

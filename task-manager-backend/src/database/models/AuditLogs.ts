@@ -29,8 +29,7 @@ type AuditLogsCreationAttributes = Optional<
 
 class AuditLogs
   extends Model<AuditLogsAttributes, AuditLogsCreationAttributes>
-  implements AuditLogsAttributes
-{
+  implements AuditLogsAttributes {
   public id!: string;
   public company_id!: string;
   public action!: string;
@@ -116,7 +115,6 @@ AuditLogs.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
-      primaryKey: true,
       field: "performed_at",
     },
   },

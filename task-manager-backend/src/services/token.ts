@@ -1,9 +1,9 @@
 import crypto from "crypto";
 import jwt, { SignOptions } from "jsonwebtoken";
-import { config } from "../config";
-import { getRedisClient } from "../config/redis";
-import { AuthError, JwtPayload, RefreshTokenPayload } from "../types";
-import { logger } from "../utils/logger";
+import { config } from "@/config";
+import { getRedisClient } from "@/config/redis";
+import { AuthError, JwtPayload, RefreshTokenPayload } from "@/types";
+import { logger } from "@/utils/logger";
 
 export class TokenService {
   private readonly accessTokenSecret: string;

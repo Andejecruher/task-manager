@@ -1,5 +1,6 @@
-import { config } from "../config";
-import { db } from "../database/connection";
+import { Op } from "sequelize";
+import { config } from "@/config";
+import { db } from "@/database/connection";
 import {
   AuthError,
   ChangePasswordDTO,
@@ -11,8 +12,8 @@ import {
   RegisterDTO,
   ResetPasswordDTO,
   UpdateProfileDTO,
-} from "../types";
-import { logger } from "../utils/logger";
+} from "@/types";
+import { logger } from "@/utils/logger";
 import { emailService } from "./email";
 import { passwordService } from "./password";
 import { sessionService } from "./session";
@@ -107,7 +108,10 @@ export class AuthService {
 
       // 7. Generar token de verificación de email
       const { token: verificationToken } =
-        tokenService.generateEmailVerificationToken(user.dataValues.id, company.dataValues.id);
+        tokenService.generateEmailVerificationToken(
+          user.dataValues.id,
+          company.dataValues.id,
+        );
 
       // 8. Crear sesión inicial
       const { sessionId, refreshToken } = await sessionService.createSession(
@@ -115,7 +119,7 @@ export class AuthService {
         company.dataValues.id,
         deviceInfo,
         deviceInfo.ip,
-        transaction
+        transaction,
       );
 
       // 9. Generar access token
@@ -405,57 +409,35 @@ export class AuthService {
   async requestPasswordReset(
     email: string,
     companySlug: string,
-  ): Promise<{
-    resetToken: string;
-    expiresAt: Date;
-  } | void> {
+  ): Promise<{ resetToken: string; expiresAt: Date } | void> {
     try {
-      // 1. Buscar compañía
-      const companyResult = await db.query(
-        `SELECT id FROM companies WHERE slug = $1`,
-        [companySlug],
-      );
+      const company = await Company.findOne({
+        where: { slug: companySlug, deletedAt: undefined },
+        attributes: ["id"],
+      });
+      if (!company) return;
 
-      if (companyResult.length === 0) {
-        // No revelar que la compañía no existe por seguridad
-        return;
-      }
+      const user = await User.scope("active").findOne({
+        where: { email, company_id: company.id, deleted_at: null },
+        attributes: ["id", "email", "full_name"],
+      });
+      if (!user) return;
 
-      const company = companyResult[0];
-
-      // 2. Buscar usuario
-      const userResult = await db.query(
-        `SELECT id, email, full_name FROM users 
-         WHERE email = $1 AND company_id = $2 AND is_active = true`,
-        [email, company.id],
-      );
-
-      if (userResult.length === 0) {
-        // No revelar que el usuario no existe por seguridad
-        return;
-      }
-
-      const user = userResult[0];
-
-      // 3. Generar token de reset
       const { token: resetToken, expiresAt } =
         tokenService.generateResetPasswordToken(user.id, company.id);
 
       // 4. TODO: Enviar email con token (implementar después)
-      await this.sendPasswordResetEmail(user.email, user.full_name, resetToken, expiresAt);
-
-      logger.info("Solicitud de reset de contraseña", {
-        userId: user.id,
-        email: user.email,
-      });
-
-      return {
-        resetToken, // Para pruebas, en producción no se devuelve
+      await this.sendPasswordResetEmail(
+        user.email,
+        user.full_name,
+        resetToken,
         expiresAt,
-      };
+      );
+
+      return { resetToken, expiresAt };
     } catch (error) {
-      logger.error("Error solicitando reset de contraseña:", error);
-      // No lanzamos error para no revelar información
+      logger.error("Error en reset:", error);
+      return;
     }
   }
 
@@ -587,59 +569,51 @@ export class AuthService {
     data: UpdateProfileDTO,
   ): Promise<any> {
     try {
-      // Construir query dinámica
-      const updates: string[] = [];
-      const values: any[] = [];
-      let paramIndex = 1;
+      // Construir objeto de actualización
+      const updateData: any = {};
 
       if (data.fullName !== undefined) {
-        updates.push(`full_name = $${paramIndex}`);
-        values.push(data.fullName);
-        paramIndex++;
+        updateData.full_name = data.fullName;
       }
 
       if (data.avatarUrl !== undefined) {
-        updates.push(`avatar_url = $${paramIndex}`);
-        values.push(data.avatarUrl);
-        paramIndex++;
+        updateData.avatar_url = data.avatarUrl;
       }
 
       if (data.timezone !== undefined) {
-        updates.push(`timezone = $${paramIndex}`);
-        values.push(data.timezone);
-        paramIndex++;
+        updateData.timezone = data.timezone;
       }
 
       if (data.locale !== undefined) {
-        updates.push(`locale = $${paramIndex}`);
-        values.push(data.locale);
-        paramIndex++;
+        updateData.locale = data.locale;
       }
 
-      if (updates.length === 0) {
+      // Always update the updated_at timestamp
+      updateData.updated_at = new Date();
+
+      if (Object.keys(updateData).length === 1) {
         return await this.getProfile(userId);
       }
 
-      updates.push(`updated_at = NOW()`);
+      // Actualizar usando Sequelize
+      const [affectedCount, affectedRows] = await User.update(updateData, {
+        where: {
+          id: userId,
+          company_id: companyId,
+        },
+        returning: true, // Para PostgreSQL
+      });
 
-      const query = `
-        UPDATE users 
-        SET ${updates.join(", ")}
-        WHERE id = $${paramIndex} AND company_id = $${paramIndex + 1}
-        RETURNING id, email, full_name, avatar_url, timezone, locale, updated_at
-      `;
-
-      values.push(userId, companyId);
-
-      const result = await db.query(query, values);
-
-      if (result.length === 0) {
+      // Revisar si se actualizó algún registro
+      if (affectedCount === 0 || !affectedRows || affectedRows.length === 0) {
         throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
       }
 
+      const result = affectedRows[0].toJSON();
+
       logger.info("Perfil actualizado", { userId });
 
-      return result[0];
+      return result;
     } catch (error) {
       if (error instanceof AuthError) throw error;
       logger.error("Error actualizando perfil:", error);
@@ -660,22 +634,24 @@ export class AuthService {
     data: ChangePasswordDTO,
   ): Promise<void> {
     try {
-      // 1. Obtener hash actual
-      const userResult = await db.query(
-        `SELECT password_hash FROM users WHERE id = $1 AND company_id = $2`,
-        [userId, companyId],
-      );
+      // 1. Obtener usuario con hash de contraseña
+      const user = await User.scope("withPassword").findOne({
+        where: {
+          id: userId,
+          company_id: companyId,
+          deleted_at: { [Op.eq]: null }, // Asegurar que no está eliminado
+        },
+        attributes: ["id", "password_hash"], // Solo traemos lo necesario
+      });
 
-      if (userResult.length === 0) {
+      if (!user) {
         throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
       }
-
-      const currentHash = userResult[0].password_hash;
 
       // 2. Verificar contraseña actual
       const currentPasswordValid = await passwordService.comparePassword(
         data.currentPassword,
-        currentHash,
+        user.password_hash, // Directamente del objeto user
       );
 
       if (!currentPasswordValid) {
@@ -692,18 +668,21 @@ export class AuthService {
       // 4. Generar nuevo hash
       const newHash = await passwordService.hashPassword(data.newPassword);
 
-      // 5. Actualizar contraseña
-      await db.query(
-        `UPDATE users 
-         SET password_hash = $1, updated_at = NOW()
-         WHERE id = $2 AND company_id = $3`,
-        [newHash, userId, companyId],
+      // 5. Actualizar contraseña con Sequelize
+      await User.update(
+        {
+          password_hash: newHash,
+          updated_at: new Date(),
+        },
+        {
+          where: {
+            id: userId,
+            company_id: companyId,
+          },
+        },
       );
 
-      // 6. Revocar todas las sesiones excepto la actual
-      // (esto se maneja en el controller que tiene el sessionId)
-
-      logger.info("Contraseña cambiada", { userId });
+      logger.info("Contraseña cambiada exitosamente", { userId });
     } catch (error) {
       if (error instanceof AuthError) throw error;
       logger.error("Error cambiando contraseña:", error);
@@ -750,7 +729,12 @@ export class AuthService {
     }
   }
 
-  private async sendPasswordResetEmail(to: string, fullName: string, resetToken: string, expiresAt: Date) {
+  private async sendPasswordResetEmail(
+    to: string,
+    fullName?: string,
+    resetToken?: string,
+    expiresAt?: Date,
+  ) {
     if (!to || !fullName || !resetToken || !expiresAt) return;
 
     try {

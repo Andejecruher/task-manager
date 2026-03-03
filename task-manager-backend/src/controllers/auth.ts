@@ -282,9 +282,7 @@ export class AuthController {
   async getProfile(req: Request, res: Response) {
     try {
       const authReq = req as AuthRequest;
-      const profile = await authService.getProfile(
-        authReq.user.id,
-      );
+      const profile = await authService.getProfile(authReq.user.id);
 
       res.apiSuccess(profile, "Perfil obtenido");
     } catch (error) {

@@ -20,7 +20,6 @@ export class SessionService {
     try {
       // Generar ID de sesión único
       const sessionId = this.generateSessionId();
-      console.log("🚀 ~ SessionService ~ createSession ~ sessionId:", sessionId)
 
       // Almacenar sesión en Redis
       await tokenService.storeSession(sessionId, userId, companyId, {
@@ -29,19 +28,24 @@ export class SessionService {
       });
 
       // Almacenar en PostgreSQL para auditoría
-      await UserSession.create({
-        id: sessionId,
-        company_id: companyId,
-        user_id: userId,
-        device_info: deviceInfo,
-        ip_address: ipAddress || "",
-        is_active: true,
-        last_activity_at: new Date(),
-        expires_at: new Date(Date.now() + 15 * 60 * 1000),
-        refresh_token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        session_token: sessionId,
-        refresh_token: sessionId
-      }, { transaction: transaction ? transaction : undefined })
+      await UserSession.create(
+        {
+          id: sessionId,
+          company_id: companyId,
+          user_id: userId,
+          device_info: deviceInfo,
+          ip_address: ipAddress || "",
+          is_active: true,
+          last_activity_at: new Date(),
+          expires_at: new Date(Date.now() + 15 * 60 * 1000),
+          refresh_token_expires_at: new Date(
+            Date.now() + 7 * 24 * 60 * 60 * 1000,
+          ),
+          session_token: sessionId,
+          refresh_token: sessionId,
+        },
+        { transaction: transaction ? transaction : undefined },
+      );
 
       // Generar refresh token
       const { token: refreshToken } = tokenService.generateRefreshToken({
@@ -77,10 +81,9 @@ export class SessionService {
     currentSessionId?: string,
   ): Promise<SessionInfo[]> {
     try {
-
       const sessions = await UserSession.findAll({
-        where: { user_id: userId, company_id: companyId }
-      })
+        where: { user_id: userId, company_id: companyId },
+      });
 
       // Obtener sesiones activas de Redis
       const redisKeys = await getRedisClient().keys(
@@ -124,11 +127,14 @@ export class SessionService {
       await tokenService.invalidateSession(sessionId);
 
       // Marcar como inactiva en PostgreSQL
-      await UserSession.update({
-        is_active: false,
-        refresh_token: new Date().getTime().toString(),
-        revoked_at: new Date()
-      }, { where: { id: sessionId, user_id: userId, company_id: companyId } })
+      await UserSession.update(
+        {
+          is_active: false,
+          refresh_token: new Date().getTime().toString(),
+          revoked_at: new Date(),
+        },
+        { where: { id: sessionId, user_id: userId, company_id: companyId } },
+      );
 
       logger.info("Sesión revocada", { sessionId, userId, companyId });
     } catch (error) {
@@ -150,10 +156,13 @@ export class SessionService {
       await tokenService.invalidateUserTokens(userId, companyId);
 
       // Marcar todas como inactivas
-      const result = await UserSession.update({
-        is_active: false,
-        revoked_at: new Date()
-      }, { where: { user_id: userId, company_id: companyId } })
+      const result = await UserSession.update(
+        {
+          is_active: false,
+          revoked_at: new Date(),
+        },
+        { where: { user_id: userId, company_id: companyId } },
+      );
 
       logger.info("Todas las sesiones revocadas", {
         userId,
@@ -221,10 +230,12 @@ export class SessionService {
       await tokenService.updateSessionActivity(sessionId);
 
       // Actualizar en PostgreSQL
-      await UserSession.update({
-        last_activity_at: new Date()
-      }, { where: { id: sessionId } })
-
+      await UserSession.update(
+        {
+          last_activity_at: new Date(),
+        },
+        { where: { id: sessionId } },
+      );
     } catch (error) {
       logger.error("Error actualizando actividad de sesión:", error);
       // No lanzamos error porque no es crítico
@@ -245,7 +256,11 @@ export class SessionService {
 
       // Verificar en PostgreSQL para consistencia
       const result = await UserSession.findOne({
-        where: { id: sessionId, is_active: true, expires_at: { [Op.gt]: new Date() } }
+        where: {
+          id: sessionId,
+          is_active: true,
+          expires_at: { [Op.gt]: new Date() },
+        },
       });
 
       return result !== null;
@@ -260,9 +275,8 @@ export class SessionService {
    */
   async getSessionDetails(sessionId: string): Promise<any> {
     try {
-
       const result = await UserSession.findOne({
-        where: { id: sessionId }
+        where: { id: sessionId },
       });
 
       if (result === null) {
@@ -288,7 +302,7 @@ export class SessionService {
     try {
       // Eliminar sesiones expiradas de PostgreSQL
       const result = await UserSession.destroy({
-        where: { expires_at: { [Op.lt]: new Date() } }
+        where: { expires_at: { [Op.lt]: new Date() } },
       });
 
       logger.info("Sesiones expiradas limpiadas", {

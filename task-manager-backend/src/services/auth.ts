@@ -412,24 +412,28 @@ export class AuthService {
   ): Promise<{ resetToken: string; expiresAt: Date } | void> {
     try {
       const company = await Company.findOne({
-        where: { slug: companySlug, deletedAt: undefined },
+        where: { slug: companySlug },
         attributes: ["id"],
       });
+
       if (!company) return;
 
       const user = await User.scope("active").findOne({
-        where: { email, company_id: company.id, deleted_at: null },
+        where: { email, company_id: company.dataValues.id },
         attributes: ["id", "email", "full_name"],
       });
       if (!user) return;
 
       const { token: resetToken, expiresAt } =
-        tokenService.generateResetPasswordToken(user.id, company.id);
+        tokenService.generateResetPasswordToken(
+          user.dataValues.id,
+          company.dataValues.id,
+        );
 
       // 4. TODO: Enviar email con token (implementar después)
       await this.sendPasswordResetEmail(
-        user.email,
-        user.full_name,
+        user.dataValues.email,
+        user.dataValues.full_name,
         resetToken,
         expiresAt,
       );

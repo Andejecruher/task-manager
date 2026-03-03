@@ -99,11 +99,11 @@ services:
   app:
     build:
       context: .
-      dockerfile: docker/app/Dockerfile
+      dockerfile: docker/app/Dockerfile.dev
     container_name: taskmanager_app_dev
     ports:
       - "3000:3000"
-      - "9229:9229" # Debug port
+      - "9229:9229"
     environment:
       NODE_ENV: development
       DB_HOST: postgres

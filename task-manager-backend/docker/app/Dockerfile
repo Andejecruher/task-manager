@@ -1,32 +1,51 @@
-FROM node:18-alpine
+FROM node:20.11.1-alpine3.20
 
 # Instalar herramientas de desarrollo
 RUN apk add --no-cache \
-    bash \
-    curl \
-    git \
-    nano \
-    postgresql-client \
-    tzdata
+    bash=5.2.26-r0 \
+    curl=8.5.0-r0 \
+    git=2.43.0-r0 \
+    nano=7.2-r0 \
+    postgresql-client=16.1-r0 \
+    tzdata=2024a-r0 \
+    dumb-init=1.2.5-r2
+
+# Crear usuario no-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
 # Configurar timezone
 ENV TZ=America/Mexico_City
+ENV NODE_ENV=development
 
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Copiar package.json
+# Copiar package files
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Instalar dependencias (incluyendo devDependencies)
-RUN npm install
+# Instalar todas las dependencias
+RUN npm ci --prefer-offline --no-audit
 
 # Copiar código fuente
 COPY . .
 
+# Cambiar propietario de archivos
+RUN chown -R nodejs:nodejs /app
+
+# Cambiar a usuario no-root
+USER nodejs
+
 # Exponer puertos
 EXPOSE 3000 9229
 
-# Comando por defecto
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+# Usar dumb-init para manejar signals correctamente
+ENTRYPOINT ["/sbin/dumb-init", "--"]
+
+# Comando por defecto para desarrollo
 CMD ["npm", "run", "dev"]

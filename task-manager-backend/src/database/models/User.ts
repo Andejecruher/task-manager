@@ -1,12 +1,12 @@
-import {
-  DataTypes,
-  Model,
-  Optional,
-  BelongsToManyGetAssociationsMixin,
-  HasManyGetAssociationsMixin,
-  Op
-} from 'sequelize';
 import { sequelizeConnection } from '@/database/connection-sequelize';
+import {
+  BelongsToManyGetAssociationsMixin,
+  DataTypes,
+  HasManyGetAssociationsMixin,
+  Model,
+  Op,
+  Optional
+} from 'sequelize';
 
 interface UserAttributes {
   id: string;
@@ -205,10 +205,13 @@ User.init(
       field: 'locked_until'
     },
     role: {
-      type: DataTypes.ENUM('owner', 'admin', 'manager', 'member', 'viewer'),
+      type: DataTypes.STRING(20),
       defaultValue: 'member',
       allowNull: false,
-      field: 'role'
+      field: 'role',
+      validate: {
+        isIn: [['owner', 'admin', 'manager', 'member', 'viewer']]
+      }
     },
     permissions: {
       type: DataTypes.JSONB,

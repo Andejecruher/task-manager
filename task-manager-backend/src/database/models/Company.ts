@@ -109,9 +109,12 @@ Company.init(
       field: "logo_url",
     },
     plan: {
-      type: DataTypes.ENUM("free", "starter", "pro", "enterprise"),
+      type: DataTypes.STRING(50),
       defaultValue: "free",
       allowNull: false,
+      validate: {
+        isIn: [["free", "starter", "pro", "enterprise"]],
+      },
     },
     billing_email: {
       type: DataTypes.STRING(255),

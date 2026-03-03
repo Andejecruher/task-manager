@@ -173,6 +173,9 @@ export class AuthService {
         },
       };
     } catch (error) {
+      console.warn("🚀 ---------------------------------------------------🚀");
+      console.warn("🚀 ~ :176 ~ AuthService ~ register ~ error:", error);
+      console.warn("🚀 ---------------------------------------------------🚀");
       // Revertir transacción en caso de error
       await transaction.rollback();
 

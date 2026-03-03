@@ -1,12 +1,12 @@
 #!/usr/bin/env tsx
 
-import "dotenv/config";
-import { app } from "./app";
 import { connectRedis } from "@/config/redis";
 import { connectDatabase } from "@/database/connection";
-import { logger } from "@/utils/logger";
 import { sequelizeConnection } from "@/database/connection-sequelize";
 import { initializeAssociations } from "@/database/models";
+import { logger } from "@/utils/logger";
+import "dotenv/config";
+import { app } from "./app";
 
 const PORT = process.env.APP_PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
@@ -22,9 +22,23 @@ async function startServer() {
       await sequelizeConnection.authenticate();
       console.log("Connection has been established successfully.");
 
-      // Inicializar asociaciones entre modelos
+      // Inicializar asociaciones entre modelos antes de sincronizar
       initializeAssociations();
       logger.info("✅ Asociaciones de modelos inicializadas");
+
+      // Con migraciones SQL + tablas particionadas, sync debe ser opt-in
+      const enableModelSync = process.env.DB_SYNC_MODE === "true";
+      if (enableModelSync) {
+        const enableSchemaAlter = process.env.DB_SYNC_ALTER === "true";
+        await sequelizeConnection.sync({ alter: enableSchemaAlter });
+        console.log("All models were synchronized successfully.");
+
+        if (enableSchemaAlter) {
+          logger.warn("⚠️ DB_SYNC_ALTER=true: Sequelize alter está habilitado");
+        }
+      } else {
+        logger.info("⏭️ Sequelize sync omitido (usar migraciones SQL)");
+      }
     } catch (error) {
       console.error("Unable to connect to the database:", error);
     }

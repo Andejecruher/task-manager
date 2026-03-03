@@ -130,7 +130,6 @@ services:
       sh -c "
         npm install &&
         npm run build &&
-        npm run migrate:up &&
         npm run dev
       "
     restart: unless-stopped

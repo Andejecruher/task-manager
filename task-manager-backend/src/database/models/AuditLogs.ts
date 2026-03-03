@@ -1,5 +1,5 @@
-import { DataTypes, Model, Optional } from "sequelize";
 import { sequelizeConnection } from "@/database/connection-sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 
 interface AuditLogsAttributes {
   id: string;
@@ -124,15 +124,6 @@ AuditLogs.init(
     tableName: "audit_logs",
     underscored: true,
     timestamps: false,
-    indexes: [
-      {
-        unique: true,
-        fields: ["company_id", "action", "entity_type", "entity_id"],
-      },
-      {
-        fields: ["performed_at"],
-      },
-    ],
     defaultScope: {
       attributes: {
         exclude: ["old_data", "new_data", "diff"],

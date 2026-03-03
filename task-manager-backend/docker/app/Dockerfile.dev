@@ -1,4 +1,4 @@
-FROM node:20.11.1-alpine3.20
+FROM node:20-alpine
 
 # Instalar herramientas de desarrollo
 RUN apk add --no-cache \

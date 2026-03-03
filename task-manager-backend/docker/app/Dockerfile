@@ -41,8 +41,8 @@ USER nodejs
 EXPOSE 3000 9229
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
+#HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+#   CMD curl -f http://localhost:3000/health || exit 1
 
 # Usar dumb-init para manejar signals correctamente
 ENTRYPOINT ["/sbin/dumb-init", "--"]

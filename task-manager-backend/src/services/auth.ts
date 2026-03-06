@@ -465,11 +465,17 @@ export class AuthService {
       const passwordHash = await passwordService.hashPassword(data.newPassword);
 
       // 4. Actualizar contraseña
-      await db.query(
-        `UPDATE users 
-         SET password_hash = $1, updated_at = NOW()
-         WHERE id = $2 AND company_id = $3`,
-        [passwordHash, userId, companyId],
+      await User.update(
+        {
+          password_hash: passwordHash,
+          updated_at: new Date(),
+        },
+        {
+          where: {
+            id: userId,
+            company_id: companyId,
+          },
+        },
       );
 
       // 5. Revocar todas las sesiones por seguridad
@@ -497,11 +503,17 @@ export class AuthService {
         await tokenService.verifyEmailVerificationToken(token);
 
       // 2. Marcar email como verificado
-      await db.query(
-        `UPDATE users 
-         SET email_verified = true, updated_at = NOW()
-         WHERE id = $1 AND company_id = $2`,
-        [userId, companyId],
+      await User.update(
+        {
+          email_verified: true,
+          updated_at: new Date(),
+        },
+        {
+          where: {
+            id: userId,
+            company_id: companyId,
+          },
+        },
       );
 
       logger.info("Email verificado", { userId });

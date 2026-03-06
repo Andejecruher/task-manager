@@ -1,15 +1,16 @@
 #!/usr/bin/env tsx
+import "dotenv/config";
 
 import { connectRedis } from "@/config/redis";
 import { connectDatabase } from "@/database/connection";
 import { sequelizeConnection } from "@/database/connection-sequelize";
 import { initializeAssociations } from "@/database/models";
 import { logger } from "@/utils/logger";
-import "dotenv/config";
-import { app } from "./app";
+import { app } from "@/app";
+import { config } from "@/config";
 
-const PORT = process.env.APP_PORT || 3000;
-const NODE_ENV = process.env.NODE_ENV || "development";
+const PORT = config.PORT;
+const NODE_ENV = config.NODE_ENV;
 
 async function startServer() {
   try {
@@ -27,9 +28,9 @@ async function startServer() {
       logger.info("✅ Asociaciones de modelos inicializadas");
 
       // Con migraciones SQL + tablas particionadas, sync debe ser opt-in
-      const enableModelSync = process.env.DB_SYNC_MODE === "true";
+      const enableModelSync = config.database.dbSynMode;
       if (enableModelSync) {
-        const enableSchemaAlter = process.env.DB_SYNC_ALTER === "true";
+        const enableSchemaAlter = config.database.dbSynAlter;
         await sequelizeConnection.sync({ alter: enableSchemaAlter });
         console.log("All models were synchronized successfully.");
 
@@ -44,7 +45,7 @@ async function startServer() {
     }
 
     // 2. Conectar a Redis (si está configurado)
-    if (process.env.REDIS_HOST) {
+    if (config.redis.host) {
       logger.info("🔌 Conectando a Redis...");
       await connectRedis();
       logger.info("✅ Redis conectado correctamente");

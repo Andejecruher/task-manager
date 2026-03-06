@@ -27,6 +27,7 @@
         "allowSyntheticDefaultImports": true,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
+        "useDefineForClassFields": false,
         "moduleResolution": "node",
         "baseUrl": ".",
         "paths": {

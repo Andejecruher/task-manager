@@ -20,6 +20,8 @@ export const config = {
             idle: 10000
         },
         ssl: process.env.DB_SSL === 'true',
+        dbSynMode: process.env.DB_SYNC_MODE === 'true',
+        dbSynAlter: process.env.DB_SYNC_ALTER === 'false',
     },
 
     // Redis

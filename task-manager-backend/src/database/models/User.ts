@@ -8,6 +8,8 @@ import {
   Optional
 } from 'sequelize';
 import { Task } from './Task';
+import { Workspace } from './Workspace';
+import { Company } from './Company';
 
 interface UserAttributes {
   id: string;
@@ -71,15 +73,15 @@ class User extends Model<UserAttributes, UserCreationAttributes>
   declare readonly deleted_at?: Date | null;
 
   // Métodos de asociación (generados por Sequelize)
-  declare getWorkspaces: BelongsToManyGetAssociationsMixin<any>;
-  declare getCreatedTasks: HasManyGetAssociationsMixin<any>;
-  declare getAssignedTasks: HasManyGetAssociationsMixin<any>;
+  declare getWorkspaces: BelongsToManyGetAssociationsMixin<Workspace>;
+  declare getCreatedTasks: HasManyGetAssociationsMixin<Task>;
+  declare getAssignedTasks: HasManyGetAssociationsMixin<Task>;
 
   // Propiedades de asociación
-  declare readonly workspaces?: any[];
-  declare readonly created_tasks?: any[];
-  declare readonly assigned_tasks?: any[];
-  declare readonly company?: any;
+  declare readonly workspaces?: Workspace[];
+  declare readonly created_tasks?: Task[];
+  declare readonly assigned_tasks?: Task[];
+  declare readonly company?: Company;
 
   // Métodos personalizados
   async isLocked(): Promise<boolean> {

@@ -14,7 +14,6 @@ import {
   UpdateProfileDTO,
 } from "@/types";
 import { logger } from "@/utils/logger";
-import { Op } from "sequelize";
 import { emailService } from "./email";
 import { passwordService } from "./password";
 import { sessionService } from "./session";

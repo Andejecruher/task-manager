@@ -1,8 +1,7 @@
-import { db } from '@/database/connection';
 import { logger } from '@/utils/logger';
 import { NextFunction, Request, Response } from 'express';
 import { AuthError, AuthRequest } from '../types';
-
+import { WorkspaceMember, Workspace, Company, User } from '@/database/models';
 /**
  * Guard para verificar que el usuario pertenece a la compañía del request
  * Se usa para endpoints multi-tenant
@@ -20,13 +19,17 @@ export const CompanyGuard = async (
         }
 
         // Verificar que el usuario todavía pertenece a la compañía
-        const userResult = await db.query(
-            `SELECT 1 FROM users 
-       WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL AND is_active = true`,
-            [authReq.user.id, authReq.company.id]
-        );
+        const user = await User.findByPk(authReq.user.id);
 
-        if (userResult.length === 0) {
+        if (!user || user.company_id !== authReq.company.id) {
+            throw new AuthError(
+                'Usuario no pertenece a esta compañía o la cuenta está desactivada',
+                'USER_NOT_IN_COMPANY',
+                403
+            );
+        }
+
+        if (!user.is_active) {
             throw new AuthError(
                 'Usuario no pertenece a esta compañía o la cuenta está desactivada',
                 'USER_NOT_IN_COMPANY',
@@ -35,13 +38,17 @@ export const CompanyGuard = async (
         }
 
         // Verificar que la compañía todavía existe y está activa
-        const companyResult = await db.query(
-            `SELECT 1 FROM companies 
-       WHERE id = $1 AND deleted_at IS NULL`,
-            [authReq.company.id]
-        );
+        const company = await Company.findByPk(authReq.company.id);
 
-        if (companyResult.length === 0) {
+        if (!company || company.deleted_at) {
+            throw new AuthError(
+                'Compañía no encontrada o eliminada',
+                'COMPANY_NOT_FOUND',
+                404
+            );
+        }
+
+        if (!company) {
             throw new AuthError(
                 'Compañía no encontrada o eliminada',
                 'COMPANY_NOT_FOUND',
@@ -86,13 +93,17 @@ export const WorkspaceAccessGuard = (workspaceParam: string = 'workspaceId') => 
             }
 
             // Verificar que el workspace pertenece a la compañía
-            const workspaceResult = await db.query(
-                `SELECT 1 FROM workspaces 
-         WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL`,
-                [workspaceId, authReq.company.id]
-            );
+            const workspace = await Workspace.findByPk(workspaceId);
 
-            if (workspaceResult.length === 0) {
+            if (!workspace || workspace.company_id !== authReq.company.id) {
+                throw new AuthError(
+                    'Workspace no encontrado o no pertenece a esta compañía',
+                    'WORKSPACE_NOT_FOUND',
+                    404
+                );
+            }
+
+            if (!workspace) {
                 throw new AuthError(
                     'Workspace no encontrado o no pertenece a esta compañía',
                     'WORKSPACE_NOT_FOUND',
@@ -103,13 +114,15 @@ export const WorkspaceAccessGuard = (workspaceParam: string = 'workspaceId') => 
             // Verificar que el usuario es miembro del workspace
             // Owners y admins tienen acceso a todos los workspaces
             if (!['owner', 'admin'].includes(authReq.user.role)) {
-                const memberResult = await db.query(
-                    `SELECT 1 FROM workspace_members 
-           WHERE workspace_id = $1 AND user_id = $2 AND company_id = $3`,
-                    [workspaceId, authReq.user.id, authReq.company.id]
-                );
+                const member = await WorkspaceMember.findOne({
+                    where: {
+                        workspace_id: workspaceId,
+                        user_id: authReq.user.id,
+                        company_id: authReq.company.id
+                    }
+                });
 
-                if (memberResult.length === 0) {
+                if (!member) {
                     throw new AuthError(
                         'No tienes acceso a este workspace',
                         'NO_WORKSPACE_ACCESS',

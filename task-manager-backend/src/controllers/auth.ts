@@ -9,8 +9,6 @@ import {
 } from "class-validator";
 import { Request, Response } from "express";
 import { sessionService as Session } from "@/services/session";
-
-const authService = new AuthService();
 import {
   AuthError,
   AuthRequest,
@@ -19,7 +17,7 @@ import {
   ResetPasswordDTO,
 } from "@/types";
 import { logger } from "@/utils/logger";
-import { AuthService } from "@/services/auth";
+import { authService } from "@/services/auth";
 
 // DTOs para validación
 class RegisterDTOClass implements RegisterDTO {

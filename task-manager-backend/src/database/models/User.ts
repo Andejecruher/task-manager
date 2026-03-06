@@ -7,13 +7,14 @@ import {
   Op,
   Optional
 } from 'sequelize';
+import { Task } from './Task';
 
 interface UserAttributes {
   id: string;
   company_id: string;
   email: string;
   email_verified: boolean;
-  password_hash?: string;
+  password_hash: string;
   full_name?: string;
   avatar_url?: string;
   phone?: string;
@@ -32,7 +33,7 @@ interface UserAttributes {
   data_retention_until?: Date;
   created_at?: Date;
   updated_at?: Date;
-  deleted_at?: Date;
+  deleted_at?: Date | null;
 }
 
 interface UserCreationAttributes extends Optional<UserAttributes,
@@ -42,43 +43,43 @@ interface UserCreationAttributes extends Optional<UserAttributes,
 
 class User extends Model<UserAttributes, UserCreationAttributes>
   implements UserAttributes {
-  public id!: string;
-  public company_id!: string;
-  public email!: string;
-  public email_verified!: boolean;
-  public password_hash!: string;
-  public full_name?: string;
-  public avatar_url?: string;
-  public phone?: string;
-  public timezone!: string;
-  public locale!: string;
-  public mfa_enabled!: boolean;
-  public mfa_secret?: string;
-  public last_login_at?: Date;
-  public failed_login_attempts!: number;
-  public locked_until?: Date;
-  public role!: string;
-  public permissions!: string[];
-  public is_active!: boolean;
-  public is_onboarded!: boolean;
-  public gdpr_consent_at?: Date;
-  public data_retention_until?: Date;
+  declare id: string;
+  declare company_id: string;
+  declare email: string;
+  declare email_verified: boolean;
+  declare password_hash: string;
+  declare full_name?: string;
+  declare avatar_url?: string;
+  declare phone?: string;
+  declare timezone: string;
+  declare locale: string;
+  declare mfa_enabled: boolean;
+  declare mfa_secret?: string;
+  declare last_login_at?: Date;
+  declare failed_login_attempts: number;
+  declare locked_until?: Date;
+  declare role: string;
+  declare permissions: string[];
+  declare is_active: boolean;
+  declare is_onboarded: boolean;
+  declare gdpr_consent_at?: Date;
+  declare data_retention_until?: Date;
 
   // Timestamps
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
-  public readonly deleted_at?: Date;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
+  declare readonly deleted_at?: Date | null;
 
   // Métodos de asociación (generados por Sequelize)
-  public getWorkspaces!: BelongsToManyGetAssociationsMixin<any>;
-  public getCreatedTasks!: HasManyGetAssociationsMixin<any>;
-  public getAssignedTasks!: HasManyGetAssociationsMixin<any>;
+  declare getWorkspaces: BelongsToManyGetAssociationsMixin<any>;
+  declare getCreatedTasks: HasManyGetAssociationsMixin<any>;
+  declare getAssignedTasks: HasManyGetAssociationsMixin<any>;
 
   // Propiedades de asociación
-  public readonly workspaces?: any[];
-  public readonly created_tasks?: any[];
-  public readonly assigned_tasks?: any[];
-  public readonly company?: any;
+  declare readonly workspaces?: any[];
+  declare readonly created_tasks?: any[];
+  declare readonly assigned_tasks?: any[];
+  declare readonly company?: any;
 
   // Métodos personalizados
   async isLocked(): Promise<boolean> {
@@ -106,6 +107,11 @@ class User extends Model<UserAttributes, UserCreationAttributes>
       ['owner', 'admin'].includes(this.role);
   }
 
+  async updateLastLogin(): Promise<void> {
+    this.last_login_at = new Date();
+    await this.save();
+  }
+
   async getActiveSessionsCount(): Promise<number> {
     const { UserSession } = require('./UserSession.model');
     return await UserSession.count({
@@ -119,7 +125,6 @@ class User extends Model<UserAttributes, UserCreationAttributes>
 
   toJSON() {
     const values = Object.assign({}, this.get());
-    delete values.password_hash;
     delete values.mfa_secret;
     return values;
   }
@@ -260,7 +265,7 @@ User.init(
     ],
     defaultScope: {
       where: {
-        deleted_at: undefined
+        deleted_at: null
       },
       attributes: {
         exclude: ['password_hash', 'mfa_secret']
@@ -275,7 +280,7 @@ User.init(
       active: {
         where: {
           is_active: true,
-          deleted_at: undefined
+          deleted_at: null
         }
       },
       owners: {

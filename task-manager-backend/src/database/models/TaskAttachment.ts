@@ -32,21 +32,21 @@ interface TaskAttachmentCreationAttributes extends Optional<
 class TaskAttachment
   extends Model<TaskAttachmentAttributes, TaskAttachmentCreationAttributes>
   implements TaskAttachmentAttributes {
-  public id!: string;
-  public company_id!: string;
-  public task_id!: string;
-  public filename!: string;
-  public original_filename?: string;
-  public file_size!: number;
-  public mime_type?: string;
-  public storage_provider!: string;
-  public storage_path!: string;
-  public storage_url!: string;
-  public thumbnail_url?: string;
-  public uploaded_by!: string;
+  declare id: string;
+  declare company_id: string;
+  declare task_id: string;
+  declare filename: string;
+  declare original_filename?: string;
+  declare file_size: number;
+  declare mime_type?: string;
+  declare storage_provider: string;
+  declare storage_path: string;
+  declare storage_url: string;
+  declare thumbnail_url?: string;
+  declare uploaded_by: string;
 
-  public readonly uploaded_at!: Date;
-  public readonly deleted_at?: Date | null;
+  declare readonly uploaded_at: Date;
+  declare readonly deleted_at?: Date | null;
 }
 
 TaskAttachment.init(

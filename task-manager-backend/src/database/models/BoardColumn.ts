@@ -32,20 +32,20 @@ interface BoardColumnCreationAttributes extends Optional<
 class BoardColumn
   extends Model<BoardColumnAttributes, BoardColumnCreationAttributes>
   implements BoardColumnAttributes {
-  public id!: string;
-  public board_id!: string;
-  public company_id!: string;
-  public name!: string;
-  public slug!: string;
-  public color?: string;
-  public description?: string;
-  public position!: number;
-  public task_limit?: number;
-  public wip_limit?: number;
-  public created_by?: string;
+  declare id: string;
+  declare board_id: string;
+  declare company_id: string;
+  declare name: string;
+  declare slug: string;
+  declare color?: string;
+  declare description?: string;
+  declare position: number;
+  declare task_limit?: number;
+  declare wip_limit?: number;
+  declare created_by?: string;
 
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
 }
 
 BoardColumn.init(

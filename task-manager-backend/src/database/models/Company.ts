@@ -16,7 +16,7 @@ interface CompanyAttributes {
   features: object;
   created_at?: Date;
   updated_at?: Date;
-  deleted_at?: Date;
+  deleted_at?: Date | null;
 }
 
 // Atributos para creación (id opcional)
@@ -29,22 +29,22 @@ interface CompanyCreationAttributes extends Optional<
 class Company
   extends Model<CompanyAttributes, CompanyCreationAttributes>
   implements CompanyAttributes {
-  public id!: string;
-  public name!: string;
-  public slug!: string;
-  public website?: string;
-  public logo_url?: string;
-  public plan!: string;
-  public billing_email?: string;
-  public subscription_id?: string;
-  public trial_ends_at?: Date;
-  public settings!: object;
-  public features!: object;
+  declare id: string;
+  declare name: string;
+  declare slug: string;
+  declare website?: string;
+  declare logo_url?: string;
+  declare plan: string;
+  declare billing_email?: string;
+  declare subscription_id?: string;
+  declare trial_ends_at?: Date;
+  declare settings: object;
+  declare features: object;
 
   // Timestamps
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
-  public readonly deleted_at?: Date;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
+  declare readonly deleted_at?: Date | null;
 
   // Métodos personalizados
   async getActiveUsersCount(): Promise<number> {
@@ -180,6 +180,14 @@ Company.init(
         fields: ["plan"],
       },
     ],
+    defaultScope: {
+      where: {
+        deleted_at: null,
+      },
+      attributes: {
+        exclude: ['subscription_id', 'trial_ends_at']
+      }
+    },
   },
 );
 

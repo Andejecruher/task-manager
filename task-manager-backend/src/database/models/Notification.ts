@@ -24,20 +24,20 @@ interface NotificationCreationAttributes extends Optional<
 class Notification
   extends Model<NotificationAttributes, NotificationCreationAttributes>
   implements NotificationAttributes {
-  public id!: string;
-  public company_id!: string;
-  public user_id!: string;
-  public type!: string;
-  public title!: string;
-  public message!: string;
-  public data!: Record<string, unknown>;
-  public is_read!: boolean;
-  public is_archived!: boolean;
+  declare id: string;
+  declare company_id: string;
+  declare user_id: string;
+  declare type: string;
+  declare title: string;
+  declare message: string;
+  declare data: Record<string, unknown>;
+  declare is_read: boolean;
+  declare is_archived: boolean;
 
   // Timestamps
-  public readonly created_at!: Date;
-  public readonly read_at?: Date;
-  public readonly expires_at?: Date;
+  declare readonly created_at: Date;
+  declare readonly read_at?: Date;
+  declare readonly expires_at?: Date;
 }
 
 Notification.init(

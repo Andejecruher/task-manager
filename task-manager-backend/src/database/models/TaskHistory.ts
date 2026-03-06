@@ -6,13 +6,13 @@ interface TaskHistoryAttributes {
   company_id: string;
   task_id: string;
   action:
-    | "created"
-    | "updated"
-    | "deleted"
-    | "status_changed"
-    | "assigned"
-    | "commented"
-    | "attachment_added";
+  | "created"
+  | "updated"
+  | "deleted"
+  | "status_changed"
+  | "assigned"
+  | "commented"
+  | "attachment_added";
   field_changed?: string;
   old_value?: Record<string, unknown>;
   new_value?: Record<string, unknown>;
@@ -34,10 +34,10 @@ interface TaskHistoryCreationAttributes extends Optional<
 class TaskHistory
   extends Model<TaskHistoryAttributes, TaskHistoryCreationAttributes>
   implements TaskHistoryAttributes {
-  public id!: string;
-  public company_id!: string;
-  public task_id!: string;
-  public action!:
+  declare id: string;
+  declare company_id: string;
+  declare task_id: string;
+  declare action:
     | "created"
     | "updated"
     | "deleted"
@@ -45,13 +45,13 @@ class TaskHistory
     | "assigned"
     | "commented"
     | "attachment_added";
-  public field_changed?: string;
-  public old_value?: Record<string, unknown>;
-  public new_value?: Record<string, unknown>;
-  public change_description?: string;
-  public changed_by!: string;
+  declare field_changed?: string;
+  declare old_value?: Record<string, unknown>;
+  declare new_value?: Record<string, unknown>;
+  declare change_description?: string;
+  declare changed_by: string;
 
-  public readonly changed_at!: Date;
+  declare readonly changed_at: Date;
 }
 
 TaskHistory.init(

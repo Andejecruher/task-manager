@@ -23,19 +23,19 @@ interface InvitationCreationAttributes extends Optional<
 class Invitation
   extends Model<InvitationAttributes, InvitationCreationAttributes>
   implements InvitationAttributes {
-  public id!: string;
-  public company_id!: string;
-  public email!: string;
-  public token!: string;
-  public role!: string;
-  public workspace_id?: string;
-  public status!: "pending" | "accepted" | "expired" | "revoked";
-  public accepted_at?: Date;
-  public invited_by!: string;
-  public expires_at!: Date;
+  declare id: string;
+  declare company_id: string;
+  declare email: string;
+  declare token: string;
+  declare role: string;
+  declare workspace_id?: string;
+  declare status: "pending" | "accepted" | "expired" | "revoked";
+  declare accepted_at?: Date;
+  declare invited_by: string;
+  declare expires_at: Date;
 
   // Timestamps
-  public readonly created_at!: Date;
+  declare readonly created_at: Date;
 }
 
 Invitation.init(

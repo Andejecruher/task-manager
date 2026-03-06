@@ -30,18 +30,18 @@ type AuditLogsCreationAttributes = Optional<
 class AuditLogs
   extends Model<AuditLogsAttributes, AuditLogsCreationAttributes>
   implements AuditLogsAttributes {
-  public id!: string;
-  public company_id!: string;
-  public action!: string;
-  public entity_type!: string;
-  public entity_id!: string;
-  public old_data!: Record<string, unknown>;
-  public new_data!: Record<string, unknown>;
-  public diff!: Record<string, unknown>;
-  public user_id!: string;
-  public readonly user_ip!: string;
-  public readonly user_agent!: string;
-  public readonly performed_at!: Date;
+  declare id: string;
+  declare company_id: string;
+  declare action: string;
+  declare entity_type: string;
+  declare entity_id: string;
+  declare old_data: Record<string, unknown>;
+  declare new_data: Record<string, unknown>;
+  declare diff: Record<string, unknown>;
+  declare user_id: string;
+  declare readonly user_ip: string;
+  declare readonly user_agent: string;
+  declare readonly performed_at: Date;
 }
 
 AuditLogs.init(

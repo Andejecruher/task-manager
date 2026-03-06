@@ -29,18 +29,18 @@ interface TaskCommentCreationAttributes extends Optional<
 class TaskComment
   extends Model<TaskCommentAttributes, TaskCommentCreationAttributes>
   implements TaskCommentAttributes {
-  public id!: string;
-  public company_id!: string;
-  public task_id!: string;
-  public content!: string;
-  public content_html?: string;
-  public mentioned_user_ids?: string[];
-  public created_by!: string;
-  public updated_by?: string;
+  declare id: string;
+  declare company_id: string;
+  declare task_id: string;
+  declare content: string;
+  declare content_html?: string;
+  declare mentioned_user_ids?: string[];
+  declare created_by: string;
+  declare updated_by?: string;
 
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
-  public readonly deleted_at?: Date | null;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
+  declare readonly deleted_at?: Date | null;
 }
 
 TaskComment.init(

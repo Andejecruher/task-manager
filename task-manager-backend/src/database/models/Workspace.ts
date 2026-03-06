@@ -35,22 +35,22 @@ interface WorkspaceCreationAttributes extends Optional<
 class Workspace
   extends Model<WorkspaceAttributes, WorkspaceCreationAttributes>
   implements WorkspaceAttributes {
-  public id!: string;
-  public company_id!: string;
-  public name!: string;
-  public slug!: string;
-  public description?: string;
-  public icon?: string;
-  public color?: string;
-  public settings!: Record<string, unknown>;
-  public is_private!: boolean;
-  public task_count!: number;
-  public member_count!: number;
-  public created_by?: string;
+  declare id: string;
+  declare company_id: string;
+  declare name: string;
+  declare slug: string;
+  declare description?: string;
+  declare icon?: string;
+  declare color?: string;
+  declare settings: Record<string, unknown>;
+  declare is_private: boolean;
+  declare task_count: number;
+  declare member_count: number;
+  declare created_by?: string;
 
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
-  public readonly deleted_at?: Date | null;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
+  declare readonly deleted_at?: Date | null;
 }
 
 Workspace.init(

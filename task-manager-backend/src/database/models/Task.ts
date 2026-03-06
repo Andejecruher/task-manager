@@ -56,35 +56,35 @@ interface TaskCreationAttributes extends Optional<
 class Task
   extends Model<TaskAttributes, TaskCreationAttributes>
   implements TaskAttributes {
-  public id!: string;
-  public company_id!: string;
-  public workspace_id!: string;
-  public board_id!: string;
-  public task_number!: number;
-  public title!: string;
-  public description?: string;
-  public description_html?: string;
-  public column_id?: string;
-  public status!: "todo" | "in_progress" | "review" | "done" | "blocked" | "cancelled";
-  public priority!: "low" | "medium" | "high" | "urgent";
-  public assignee_id?: string;
-  public assignee_ids?: string[];
-  public due_date?: Date;
-  public start_date?: Date;
-  public completed_at?: Date;
-  public time_estimate?: number;
-  public tags?: string[];
-  public metadata!: Record<string, unknown>;
-  public total_time_spent!: number;
-  public last_time_tracked_at?: Date;
-  public parent_task_id?: string;
-  public related_task_ids?: string[];
-  public created_by!: string;
-  public updated_by?: string;
+  declare id: string;
+  declare company_id: string;
+  declare workspace_id: string;
+  declare board_id: string;
+  declare task_number: number;
+  declare title: string;
+  declare description?: string;
+  declare description_html?: string;
+  declare column_id?: string;
+  declare status: "todo" | "in_progress" | "review" | "done" | "blocked" | "cancelled";
+  declare priority: "low" | "medium" | "high" | "urgent";
+  declare assignee_id?: string;
+  declare assignee_ids?: string[];
+  declare due_date?: Date;
+  declare start_date?: Date;
+  declare completed_at?: Date;
+  declare time_estimate?: number;
+  declare tags?: string[];
+  declare metadata: Record<string, unknown>;
+  declare total_time_spent: number;
+  declare last_time_tracked_at?: Date;
+  declare parent_task_id?: string;
+  declare related_task_ids?: string[];
+  declare created_by: string;
+  declare updated_by?: string;
 
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
-  public readonly deleted_at?: Date | null;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
+  declare readonly deleted_at?: Date | null;
 }
 
 Task.init(

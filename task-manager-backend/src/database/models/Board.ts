@@ -38,24 +38,24 @@ interface BoardCreationAttributes extends Optional<
 class Board
   extends Model<BoardAttributes, BoardCreationAttributes>
   implements BoardAttributes {
-  public id!: string;
-  public company_id!: string;
-  public workspace_id!: string;
-  public name!: string;
-  public slug!: string;
-  public description?: string;
-  public icon?: string;
-  public color?: string;
-  public settings!: Record<string, unknown>;
-  public visibility!: "private" | "workspace" | "company" | "public";
-  public task_count!: number;
-  public archived_task_count!: number;
-  public created_by?: string;
-  public archived_at?: Date;
+  declare id: string;
+  declare company_id: string;
+  declare workspace_id: string;
+  declare name: string;
+  declare slug: string;
+  declare description?: string;
+  declare icon?: string;
+  declare color?: string;
+  declare settings: Record<string, unknown>;
+  declare visibility: "private" | "workspace" | "company" | "public";
+  declare task_count: number;
+  declare archived_task_count: number;
+  declare created_by?: string;
+  declare archived_at?: Date;
 
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
-  public readonly deleted_at?: Date | null;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
+  declare readonly deleted_at?: Date | null;
 }
 
 Board.init(

@@ -27,26 +27,26 @@ interface UserSessionCreationAttributes extends Optional<
 class UserSession
   extends Model<UserSessionAttributes, UserSessionCreationAttributes>
   implements UserSessionAttributes {
-  public id!: string;
-  public company_id!: string;
-  public user_id!: string;
-  public session_token!: string;
-  public refresh_token!: string;
-  public device_info!: DeviceInfo;
-  public ip_address!: string;
-  public is_active!: boolean;
-  public last_activity_at!: Date;
-  public expires_at!: Date;
-  public refresh_token_expires_at!: Date;
+  declare id: string;
+  declare company_id: string;
+  declare user_id: string;
+  declare session_token: string;
+  declare refresh_token: string;
+  declare device_info: DeviceInfo;
+  declare ip_address: string;
+  declare is_active: boolean;
+  declare last_activity_at: Date;
+  declare expires_at: Date;
+  declare refresh_token_expires_at: Date;
 
   // Timestamps
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
-  public readonly revoked_at?: Date | null;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
+  declare readonly revoked_at?: Date | null;
 
   // Asociaciones
-  public readonly company?: any;
-  public readonly user?: any;
+  declare readonly company?: any;
+  declare readonly user?: any;
 }
 
 UserSession.init(

@@ -27,16 +27,16 @@ interface WorkspaceMemberCreationAttributes extends Optional<
 class WorkspaceMember
   extends Model<WorkspaceMemberAttributes, WorkspaceMemberCreationAttributes>
   implements WorkspaceMemberAttributes {
-  public id!: string;
-  public workspace_id!: string;
-  public user_id!: string;
-  public company_id!: string;
-  public role!: "admin" | "member" | "viewer";
-  public permissions!: Record<string, unknown>;
-  public notification_settings!: Record<string, unknown>;
-  public joined_at?: Date;
-  public invited_by?: string;
-  public invited_at?: Date;
+  declare id: string;
+  declare workspace_id: string;
+  declare user_id: string;
+  declare company_id: string;
+  declare role: "admin" | "member" | "viewer";
+  declare permissions: Record<string, unknown>;
+  declare notification_settings: Record<string, unknown>;
+  declare joined_at?: Date;
+  declare invited_by?: string;
+  declare invited_at?: Date;
 }
 
 WorkspaceMember.init(

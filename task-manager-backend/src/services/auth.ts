@@ -1,8 +1,6 @@
 import { config } from "@/config";
-import { db } from "@/database/connection";
 import { sequelizeConnection } from "@/database/connection-sequelize";
-import { Company } from "@/database/models/Company";
-import { User } from "@/database/models/User";
+import { Company, User } from "@/database/models";
 import {
   AuthError,
   ChangePasswordDTO,
@@ -38,12 +36,12 @@ export class AuthService {
 
     try {
       // 1. Verificar que el email no esté en uso globalmente
-      const existingUser = await User.findOne({
+      const user = await User.findOne({
         where: { email: data.email },
         transaction,
       });
 
-      if (existingUser) {
+      if (user) {
         throw new AuthError(
           "El email ya está registrado",
           "EMAIL_ALREADY_EXISTS",
@@ -52,12 +50,12 @@ export class AuthService {
       }
 
       // 2. Verificar que el slug de compañía esté disponible
-      const existingCompany = await Company.findOne({
+      const company = await Company.findOne({
         where: { slug: data.companySlug },
         transaction,
       });
 
-      if (existingCompany) {
+      if (company) {
         throw new AuthError(
           "El nombre de empresa ya está en uso",
           "COMPANY_SLUG_EXISTS",
@@ -66,7 +64,7 @@ export class AuthService {
       }
 
       // 3. Crear compañía
-      const company = await Company.create(
+      const newCompany = await Company.create(
         {
           name: data.companyName,
           slug: data.companySlug,
@@ -81,9 +79,9 @@ export class AuthService {
       const passwordHash = await passwordService.hashPassword(data.password);
 
       // 5. Crear usuario owner
-      const user = await User.create(
+      const newUser = await User.create(
         {
-          company_id: company.dataValues.id,
+          company_id: newCompany.id,
           email: data.email,
           password_hash: passwordHash,
           full_name: data.fullName,
@@ -109,14 +107,14 @@ export class AuthService {
       // 7. Generar token de verificación de email
       const { token: verificationToken } =
         tokenService.generateEmailVerificationToken(
-          user.dataValues.id,
-          company.dataValues.id,
+          newUser.id,
+          newCompany.id,
         );
 
       // 8. Crear sesión inicial
       const { sessionId, refreshToken } = await sessionService.createSession(
-        user.dataValues.id,
-        company.dataValues.id,
+        newUser.id,
+        newCompany.id,
         deviceInfo,
         deviceInfo.ip,
         transaction,
@@ -125,17 +123,17 @@ export class AuthService {
       // 9. Generar access token
       const { token: accessToken, expiresIn } =
         tokenService.generateAccessToken({
-          userId: user.dataValues.id,
-          companyId: company.dataValues.id,
+          userId: newUser.id,
+          companyId: newCompany.id,
           sessionId,
-          role: user.dataValues.role,
-          email: user.dataValues.email,
+          role: newUser.role,
+          email: newUser.email,
         });
 
       // 10. Enviar email de verificación
       await this.sendVerificationEmail(
-        user.dataValues.email,
-        user.dataValues.full_name || data.fullName,
+        newUser.email,
+        newUser.full_name || data.fullName,
         verificationToken,
       );
 
@@ -143,20 +141,20 @@ export class AuthService {
       await transaction.commit();
 
       logger.info("Registro exitoso", {
-        userId: user.dataValues.id,
-        companyId: company.dataValues.id,
-        email: user.dataValues.email,
+        userId: newUser.id,
+        companyId: newCompany.id,
+        email: newUser.email,
       });
 
       return {
         user: {
-          id: user.dataValues.id,
-          email: user.dataValues.email,
-          fullName: user.dataValues.full_name,
-          role: user.dataValues.role,
-          companyId: user.dataValues.company_id,
-          emailVerified: user.dataValues.email_verified,
-          avatarUrl: user.avatar_url,
+          id: newUser.id,
+          email: newUser.email,
+          fullName: newUser.full_name,
+          role: newUser.role,
+          companyId: newUser.company_id,
+          emailVerified: newUser.email_verified,
+          avatarUrl: newUser.avatar_url,
         },
         tokens: {
           verificationToken, // Para pruebas, en producción no se devuelve
@@ -166,16 +164,13 @@ export class AuthService {
           refreshExpiresIn: 604800, // 7 días en segundos
         },
         company: {
-          id: company.dataValues.id,
-          name: company.dataValues.name,
-          slug: company.dataValues.slug,
-          plan: company.dataValues.plan,
+          id: newCompany.id,
+          name: newCompany.name,
+          slug: newCompany.slug,
+          plan: newCompany.plan,
         },
       };
     } catch (error) {
-      console.warn("🚀 ---------------------------------------------------🚀");
-      console.warn("🚀 ~ :176 ~ AuthService ~ register ~ error:", error);
-      console.warn("🚀 ---------------------------------------------------🚀");
       // Revertir transacción en caso de error
       await transaction.rollback();
 
@@ -208,17 +203,11 @@ export class AuthService {
       }
 
       // 3. Obtener información del usuario
-      const userResult = await db.query(
-        `SELECT id, email, role, is_active FROM users 
-         WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL`,
-        [payload.userId, payload.companyId],
-      );
+      const user = await User.findByPk(payload.userId);
 
-      if (userResult.length === 0) {
+      if (!user) {
         throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
       }
-
-      const user = userResult[0];
 
       if (!user.is_active) {
         throw new AuthError("Cuenta desactivada", "ACCOUNT_INACTIVE", 403);
@@ -280,31 +269,25 @@ export class AuthService {
 
     try {
       // 1. Buscar compañía por slug
-      const companyResult = await db.query(
-        `SELECT id, name, slug, plan FROM companies WHERE slug = $1 AND deleted_at IS NULL`,
-        [data.companySlug],
-      );
+      const company = await Company.findOne({
+        where: { slug: data.companySlug },
+      });
 
-      if (companyResult.length === 0) {
-        throw new AuthError("Empresa no encontrada", "COMPANY_NOT_FOUND", 404);
+      if (!company) {
+        throw new AuthError(
+          "El nombre de empresa no existe",
+          "COMPANY_SLUG_NOT_FOUND",
+          404,
+        );
       }
 
-      const company = companyResult[0];
-
       // 2. Buscar usuario en esa compañía específica
-      const userResult = await db.query(
-        `SELECT 
-          id, email, password_hash, full_name, role, 
-          company_id, email_verified, avatar_url, is_active,
-          failed_login_attempts, locked_until
-         FROM users 
-         WHERE email = $1 AND company_id = $2 AND deleted_at IS NULL`,
-        [data.email, company.id],
-      );
+      const user = await User.scope('withPassword').findOne({
+        where: { email: data.email, company_id: company.id },
+      });
 
-      if (userResult.length === 0) {
+      if (!user) {
         // Incrementar contador de intentos fallidos si el usuario existe en otra compañía
-        await this.handleFailedLoginAttempt(data.email);
         throw new AuthError(
           "Credenciales inválidas",
           "INVALID_CREDENTIALS",
@@ -312,10 +295,8 @@ export class AuthService {
         );
       }
 
-      const user = userResult[0];
-
       // 3. Verificar si la cuenta está bloqueada
-      if (user.locked_until && new Date(user.locked_until) > new Date()) {
+      if (await user.isLocked()) {
         throw new AuthError(
           "Cuenta bloqueada temporalmente",
           "ACCOUNT_LOCKED",
@@ -324,7 +305,7 @@ export class AuthService {
       }
 
       // 4. Verificar si la cuenta está activa
-      if (!user.is_active) {
+      if (!user.is_active && !user.password_hash) {
         throw new AuthError("Cuenta desactivada", "ACCOUNT_INACTIVE", 403);
       }
 
@@ -336,7 +317,7 @@ export class AuthService {
 
       if (!passwordValid) {
         // Incrementar intentos fallidos
-        await this.incrementFailedAttempts(user.id, company.id);
+        await user.incrementFailedAttempts();
         throw new AuthError(
           "Credenciales inválidas",
           "INVALID_CREDENTIALS",
@@ -345,12 +326,10 @@ export class AuthService {
       }
 
       // 6. Resetear contador de intentos fallidos (login exitoso)
-      await this.resetFailedAttempts(user.id, company.id);
+      await user.resetFailedAttempts();
 
       // 7. Actualizar último login
-      await db.query(`UPDATE users SET last_login_at = NOW() WHERE id = $1`, [
-        user.id,
-      ]);
+      await user.updateLastLogin();
 
       // 8. Crear nueva sesión
       const { sessionId, refreshToken } = await sessionService.createSession(
@@ -422,21 +401,21 @@ export class AuthService {
       if (!company) return;
 
       const user = await User.scope("active").findOne({
-        where: { email, company_id: company.dataValues.id },
+        where: { email, company_id: company.id },
         attributes: ["id", "email", "full_name"],
       });
       if (!user) return;
 
       const { token: resetToken, expiresAt } =
         tokenService.generateResetPasswordToken(
-          user.dataValues.id,
-          company.dataValues.id,
+          user.id,
+          company.id,
         );
 
       // 4. TODO: Enviar email con token (implementar después)
       await this.sendPasswordResetEmail(
-        user.dataValues.email,
-        user.dataValues.full_name,
+        user.email,
+        user.full_name,
         resetToken,
         expiresAt,
       );
@@ -567,11 +546,11 @@ export class AuthService {
     try {
       const result = await User.findByPk(userId);
 
-      if (!result?.dataValues) {
+      if (!result) {
         throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
       }
 
-      return result?.dataValues;
+      return result;
     } catch (error) {
       if (error instanceof AuthError) throw error;
       logger.error("Error obteniendo perfil:", error);
@@ -658,7 +637,6 @@ export class AuthService {
         where: {
           id: userId,
           company_id: companyId,
-          deleted_at: { [Op.eq]: undefined }, // Asegurar que no está eliminado
         },
         attributes: ["id", "password_hash"], // Solo traemos lo necesario
       });
@@ -803,79 +781,6 @@ export class AuthService {
     }
   }
 
-  private async handleFailedLoginAttempt(email: string): Promise<void> {
-    try {
-      // Buscar usuario en cualquier compañía con este email
-      const users = await db.query(
-        `SELECT id, company_id FROM users WHERE email = $1`,
-        [email],
-      );
-
-      for (const user of users) {
-        await this.incrementFailedAttempts(user.id, user.company_id);
-      }
-    } catch (error) {
-      logger.error("Error manejando intento fallido de login:", error);
-    }
-  }
-
-  private async incrementFailedAttempts(
-    userId: string,
-    companyId: string,
-  ): Promise<void> {
-    try {
-      await db.query(
-        `UPDATE users 
-         SET failed_login_attempts = failed_login_attempts + 1,
-             updated_at = NOW()
-         WHERE id = $1 AND company_id = $2`,
-        [userId, companyId],
-      );
-
-      // Bloquear cuenta después de 5 intentos fallidos
-      const result = await db.query(
-        `SELECT failed_login_attempts FROM users 
-         WHERE id = $1 AND company_id = $2`,
-        [userId, companyId],
-      );
-
-      if (result.length > 0 && result[0].failed_login_attempts >= 5) {
-        await db.query(
-          `UPDATE users 
-           SET locked_until = NOW() + INTERVAL '15 minutes',
-               updated_at = NOW()
-           WHERE id = $1 AND company_id = $2`,
-          [userId, companyId],
-        );
-
-        logger.warn("Cuenta bloqueada por intentos fallidos", {
-          userId,
-          companyId,
-          attempts: result[0].failed_login_attempts,
-        });
-      }
-    } catch (error) {
-      logger.error("Error incrementando intentos fallidos:", error);
-    }
-  }
-
-  private async resetFailedAttempts(
-    userId: string,
-    companyId: string,
-  ): Promise<void> {
-    try {
-      await db.query(
-        `UPDATE users 
-         SET failed_login_attempts = 0,
-             locked_until = NULL,
-             updated_at = NOW()
-         WHERE id = $1 AND company_id = $2`,
-        [userId, companyId],
-      );
-    } catch (error) {
-      logger.error("Error reseteando intentos fallidos:", error);
-    }
-  }
 }
 
 // Instancia singleton

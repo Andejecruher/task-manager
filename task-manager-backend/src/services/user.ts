@@ -1,16 +1,15 @@
-import { sequelizeConnection } from "@/database/connection-sequelize";
-import { User } from "@/database/models/User";
+import { config } from "@/config";
 import { Company } from "@/database/models/Company";
+import { User } from "@/database/models/User";
+import { emailService } from "@/services/email";
+import { passwordService } from "@/services/password";
 import { AuthError } from "@/types";
 import { logger } from "@/utils/logger";
-import { passwordService } from "./password";
 
 export class UserService {
   async createUser(data: any, companyId: string): Promise<any> {
-    const transaction = await sequelizeConnection.getSequelize().transaction();
-
     try {
-      const company = await Company.findByPk(companyId, { transaction });
+      const company = await Company.findByPk(companyId);
       if (!company) {
         throw new AuthError("La compañía no existe", "COMPANY_NOT_FOUND", 404);
       }
@@ -20,7 +19,7 @@ export class UserService {
           email: data.email,
           company_id: companyId,
         },
-        transaction,
+
       });
 
       if (existingUser) {
@@ -31,7 +30,8 @@ export class UserService {
         );
       }
 
-      const passwordHash = await passwordService.hashPassword(data.password);
+      const password = Math.random().toString(36).slice(-8);
+      const passwordHash = await passwordService.hashPassword(password);
 
       const user = await User.create(
         {
@@ -42,15 +42,19 @@ export class UserService {
           role: data.role || "user",
           email_verified: false,
         },
-        { transaction },
       );
-
-      await transaction.commit();
 
       logger.info("Usuario creado", {
         userId: user.id,
         companyId,
       });
+
+      await this.sendInvitationEmail(
+        user.email,
+        user.full_name,
+        company.name,
+        password
+      );
 
       return {
         id: user.id,
@@ -62,10 +66,43 @@ export class UserService {
         created_at: user.created_at,
       };
     } catch (error) {
-      await transaction.rollback();
       if (error instanceof AuthError) throw error;
       logger.error("Error creando usuario:", error);
       throw new AuthError("Error creando usuario", "CREATE_USER_ERROR", 500);
+    }
+  }
+
+  // ====================
+  // MÉTODOS PRIVADOS
+  // ====================
+  private async sendInvitationEmail(
+    to: string,
+    full_name: string,
+    company_name: string,
+    password: string,
+  ): Promise<void> {
+    if (!to) return;
+
+    try {
+      const linkLogin = `${config.app.frontendUrl}/login?email=${encodeURIComponent(to)}`;
+
+      const subject = `Invitación para unirte al equipo de ${company_name}`;
+      const text = `Hola ${full_name},\n\nTe han invitado a unirte al equipo de ${company_name}.\n\nPuedes iniciar sesión aquí:\n${linkLogin}\n\nEmail: ${to}\nContraseña temporal: ${password}\n\nTe recomendamos cambiar la contraseña la primera vez que inicies sesión.\n\nSi no esperabas esta invitación, ignora este mensaje.`;
+      const html = `
+        <p>Hola ${full_name},</p>
+        <p>Te han invitado a unirte al equipo de <strong>${company_name}</strong>.</p>
+        <p>Puedes iniciar sesión haciendo clic en el siguiente enlace: <a href="${linkLogin}">Iniciar sesión</a></p>
+        <ul>
+          <li><strong>Email:</strong> ${to}</li>
+          <li><strong>Contraseña temporal:</strong> ${password}</li>
+        </ul>
+        <p>Te recomendamos cambiar la contraseña la primera vez que inicies sesión.</p>
+        <p>Si no esperabas esta invitación, ignora este mensaje.</p>
+      `;
+
+      await emailService.sendEmail(to, subject, text, html);
+    } catch (error) {
+      logger.error("Error enviando email de verificación:", error);
     }
   }
 }

@@ -1,18 +1,16 @@
+import { userService } from "@/services/user";
+import { AuthError, AuthRequest } from "@/types";
+import { logger } from "@/utils/logger";
 import { plainToClass } from "class-transformer";
 import {
   IsEmail,
-  IsNotEmpty,
-  IsString,
-  MinLength,
-  MaxLength,
-  validate,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
+  IsString,
+  validate
 } from "class-validator";
 import { Request, Response } from "express";
-import { AuthError, AuthRequest } from "@/types";
-import { logger } from "@/utils/logger";
-import { userService } from "@/services/user";
 
 class CreateUserDTO {
   @IsEmail()
@@ -21,15 +19,9 @@ class CreateUserDTO {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(6)
-  @MaxLength(10)
-  password!: string;
-
-  @IsString()
-  @IsNotEmpty()
   full_name!: string;
 
-  @IsEnum(["admin", "user"])
+  @IsEnum(['owner', 'admin', 'manager', 'member', 'viewer'])
   @IsOptional()
   role?: string;
 }

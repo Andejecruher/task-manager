@@ -1,6 +1,6 @@
 import { userController } from "@/controllers/user";
 import { CompanyGuard } from "@/guards/company";
-import { authenticate, extractDeviceInfo } from "@/middlewares/auth";
+import { authenticate, extractDeviceInfo, requireEmailVerified } from "@/middlewares/auth";
 import { Router } from "express";
 
 const router = Router();
@@ -8,7 +8,7 @@ const router = Router();
 router.post(
   "/",
   authenticate,
-  //requireEmailVerified,
+  requireEmailVerified,
   CompanyGuard,
   extractDeviceInfo,
   userController.createUser.bind(userController),

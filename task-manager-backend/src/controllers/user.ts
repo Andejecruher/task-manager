@@ -19,7 +19,7 @@ class CreateUserDTO {
 
   @IsString()
   @IsNotEmpty()
-  full_name!: string;
+  fullName!: string;
 
   @IsEnum(['owner', 'admin', 'manager', 'member', 'viewer'])
   @IsOptional()

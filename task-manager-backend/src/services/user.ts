@@ -37,7 +37,7 @@ export class UserService {
         {
           email: data.email,
           password_hash: passwordHash,
-          full_name: data.full_name,
+          full_name: data.fullName,
           company_id: companyId,
           role: data.role || "user",
           email_verified: false,

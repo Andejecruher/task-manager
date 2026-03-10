@@ -105,10 +105,7 @@ export class AuthService {
 
       // 7. Generar token de verificación de email
       const { token: verificationToken } =
-        tokenService.generateEmailVerificationToken(
-          newUser.id,
-          newCompany.id,
-        );
+        tokenService.generateEmailVerificationToken(newUser.id, newCompany.id);
 
       // 8. Crear sesión inicial
       const { sessionId, refreshToken } = await sessionService.createSession(
@@ -281,7 +278,7 @@ export class AuthService {
       }
 
       // 2. Buscar usuario en esa compañía específica
-      const user = await User.scope('withPassword').findOne({
+      const user = await User.scope("withPassword").findOne({
         where: { email: data.email, company_id: company.id },
       });
 
@@ -406,10 +403,7 @@ export class AuthService {
       if (!user) return;
 
       const { token: resetToken, expiresAt } =
-        tokenService.generateResetPasswordToken(
-          user.id,
-          company.id,
-        );
+        tokenService.generateResetPasswordToken(user.id, company.id);
 
       // 4. TODO: Enviar email con token (implementar después)
       await this.sendPasswordResetEmail(
@@ -779,7 +773,6 @@ export class AuthService {
       throw new AuthError(errors.join(", "), "VALIDATION_ERROR", 400);
     }
   }
-
 }
 
 // Instancia singleton

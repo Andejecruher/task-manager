@@ -1,15 +1,15 @@
-import { sequelizeConnection } from '@/database/connection-sequelize';
+import { sequelizeConnection } from "@/database/connection-sequelize";
 import {
   BelongsToManyGetAssociationsMixin,
   DataTypes,
   HasManyGetAssociationsMixin,
   Model,
   Op,
-  Optional
-} from 'sequelize';
-import { Company } from './Company';
-import { Task } from './Task';
-import { Workspace } from './Workspace';
+  Optional,
+} from "sequelize";
+import { Company } from "./Company";
+import { Task } from "./Task";
+import { Workspace } from "./Workspace";
 
 interface UserAttributes {
   id: string;
@@ -38,13 +38,23 @@ interface UserAttributes {
   deleted_at?: Date | null;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes,
-  'id' | 'email_verified' | 'mfa_enabled' | 'failed_login_attempts' |
-  'permissions' | 'is_active' | 'is_onboarded' | 'timezone' | 'locale'
-> { }
+interface UserCreationAttributes extends Optional<
+  UserAttributes,
+  | "id"
+  | "email_verified"
+  | "mfa_enabled"
+  | "failed_login_attempts"
+  | "permissions"
+  | "is_active"
+  | "is_onboarded"
+  | "timezone"
+  | "locale"
+> {}
 
-class User extends Model<UserAttributes, UserCreationAttributes>
-  implements UserAttributes {
+class User
+  extends Model<UserAttributes, UserCreationAttributes>
+  implements UserAttributes
+{
   declare id: string;
   declare company_id: string;
   declare email: string;
@@ -105,8 +115,10 @@ class User extends Model<UserAttributes, UserCreationAttributes>
   }
 
   async hasPermission(permission: string): Promise<boolean> {
-    return this.permissions.includes(permission) ||
-      ['owner', 'admin'].includes(this.role);
+    return (
+      this.permissions.includes(permission) ||
+      ["owner", "admin"].includes(this.role)
+    );
   }
 
   async updateLastLogin(): Promise<void> {
@@ -115,13 +127,13 @@ class User extends Model<UserAttributes, UserCreationAttributes>
   }
 
   async getActiveSessionsCount(): Promise<number> {
-    const { UserSession } = require('./UserSession.model');
+    const { UserSession } = require("./UserSession.model");
     return await UserSession.count({
       where: {
         user_id: this.id,
         is_active: true,
-        expires_at: { [Op.gt]: new Date() }
-      }
+        expires_at: { [Op.gt]: new Date() },
+      },
     });
   }
 
@@ -137,195 +149,195 @@ User.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     company_id: {
       type: DataTypes.UUID,
       allowNull: false,
-      field: 'company_id',
+      field: "company_id",
       references: {
-        model: 'companies',
-        key: 'id'
-      }
+        model: "companies",
+        key: "id",
+      },
     },
     email: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      field: 'email',
+      field: "email",
       validate: {
         isEmail: true,
-        notEmpty: true
-      }
+        notEmpty: true,
+      },
     },
     email_verified: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-      field: 'email_verified'
+      field: "email_verified",
     },
     password_hash: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      field: 'password_hash'
+      field: "password_hash",
     },
     full_name: {
       type: DataTypes.STRING(255),
-      field: 'full_name'
+      field: "full_name",
     },
     avatar_url: {
       type: DataTypes.TEXT,
-      field: 'avatar_url'
+      field: "avatar_url",
     },
     phone: {
       type: DataTypes.STRING(50),
-      field: 'phone'
+      field: "phone",
     },
     timezone: {
       type: DataTypes.STRING(50),
-      defaultValue: 'UTC',
-      field: 'timezone'
+      defaultValue: "UTC",
+      field: "timezone",
     },
     locale: {
       type: DataTypes.STRING(10),
-      defaultValue: 'es-ES',
-      field: 'locale'
+      defaultValue: "es-ES",
+      field: "locale",
     },
     mfa_enabled: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-      field: 'mfa_enabled'
+      field: "mfa_enabled",
     },
     mfa_secret: {
       type: DataTypes.STRING(255),
-      field: 'mfa_secret'
+      field: "mfa_secret",
     },
     last_login_at: {
       type: DataTypes.DATE,
-      field: 'last_login_at'
+      field: "last_login_at",
     },
     failed_login_attempts: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
-      field: 'failed_login_attempts'
+      field: "failed_login_attempts",
     },
     locked_until: {
       type: DataTypes.DATE,
-      field: 'locked_until'
+      field: "locked_until",
     },
     role: {
       type: DataTypes.STRING(20),
-      defaultValue: 'member',
+      defaultValue: "member",
       allowNull: false,
-      field: 'role',
+      field: "role",
       validate: {
-        isIn: [['owner', 'admin', 'manager', 'member', 'viewer']]
-      }
+        isIn: [["owner", "admin", "manager", "member", "viewer"]],
+      },
     },
     permissions: {
       type: DataTypes.JSONB,
       defaultValue: [],
-      field: 'permissions'
+      field: "permissions",
     },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
-      field: 'is_active'
+      field: "is_active",
     },
     is_onboarded: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-      field: 'is_onboarded'
+      field: "is_onboarded",
     },
     gdpr_consent_at: {
       type: DataTypes.DATE,
-      field: 'gdpr_consent_at'
+      field: "gdpr_consent_at",
     },
     data_retention_until: {
       type: DataTypes.DATE,
-      field: 'data_retention_until'
-    }
+      field: "data_retention_until",
+    },
   },
   {
     sequelize: sequelizeConnection.getSequelize(),
-    modelName: 'User',
-    tableName: 'users',
+    modelName: "User",
+    tableName: "users",
     underscored: true,
     paranoid: true,
     indexes: [
       {
         unique: true,
-        fields: ['company_id', 'email']
+        fields: ["company_id", "email"],
       },
       {
-        fields: ['email']
+        fields: ["email"],
       },
       {
-        fields: ['role']
+        fields: ["role"],
       },
       {
-        fields: ['is_active']
-      }
+        fields: ["is_active"],
+      },
     ],
     defaultScope: {
       where: {
-        deleted_at: null
+        deleted_at: null,
       },
       attributes: {
-        exclude: ['password_hash', 'mfa_secret']
-      }
+        exclude: ["password_hash", "mfa_secret"],
+      },
     },
     scopes: {
       withPassword: {
         attributes: {
-          include: ['password_hash']
-        }
+          include: ["password_hash"],
+        },
       },
       active: {
         where: {
           is_active: true,
-          deleted_at: null
-        }
+          deleted_at: null,
+        },
       },
       owners: {
         where: {
-          role: 'owner'
-        }
-      }
-    }
-  }
+          role: "owner",
+        },
+      },
+    },
+  },
 );
 
 export function setupUserAssociations() {
-  const Company = require('./Company').Company;
-  const Workspace = require('./Workspace').Workspace;
-  const Task = require('./Task').Task;
-  const WorkspaceMember = require('./WorkspaceMember').WorkspaceMember;
+  const Company = require("./Company").Company;
+  const Workspace = require("./Workspace").Workspace;
+  const Task = require("./Task").Task;
+  const WorkspaceMember = require("./WorkspaceMember").WorkspaceMember;
 
   (User as any).belongsTo(Company, {
-    foreignKey: 'company_id',
-    as: 'company',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
+    foreignKey: "company_id",
+    as: "company",
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
   });
 
   (User as any).belongsToMany(Workspace, {
     through: WorkspaceMember,
-    foreignKey: 'user_id',
-    otherKey: 'workspace_id',
-    as: 'workspaces'
+    foreignKey: "user_id",
+    otherKey: "workspace_id",
+    as: "workspaces",
   });
 
   (User as any).hasMany(Task, {
-    foreignKey: 'created_by',
-    as: 'created_tasks',
-    onDelete: 'SET NULL',
-    onUpdate: 'CASCADE'
+    foreignKey: "created_by",
+    as: "created_tasks",
+    onDelete: "SET NULL",
+    onUpdate: "CASCADE",
   });
 
   (User as any).hasMany(Task, {
-    foreignKey: 'assigned_to',
-    as: 'assigned_tasks',
-    onDelete: 'SET NULL',
-    onUpdate: 'CASCADE'
+    foreignKey: "assigned_to",
+    as: "assigned_tasks",
+    onDelete: "SET NULL",
+    onUpdate: "CASCADE",
   });
 }
 

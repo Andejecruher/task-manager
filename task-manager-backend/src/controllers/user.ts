@@ -8,7 +8,8 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  validate
+  IsUUID,
+  validate,
 } from "class-validator";
 import { Request, Response } from "express";
 
@@ -21,9 +22,23 @@ class CreateUserDTO {
   @IsNotEmpty()
   fullName!: string;
 
-  @IsEnum(['owner', 'admin', 'manager', 'member', 'viewer'])
+  @IsEnum(["owner", "admin", "manager", "member", "viewer"])
   @IsOptional()
   role?: string;
+}
+
+// DTO para actualizar rol
+class UpdateRoleDTO {
+  @IsEnum(["owner", "admin", "manager", "member", "viewer"])
+  @IsNotEmpty()
+  role!: string;
+}
+
+// NUEVO: DTO para validar parámetros de eliminación
+class DeleteUserParamsDTO {
+  @IsUUID()
+  @IsNotEmpty()
+  id!: string;
 }
 
 export class UserController {
@@ -42,6 +57,85 @@ export class UserController {
       return res.status(201).apiSuccess(result, "Usuario creado exitosamente");
     } catch (error) {
       logger.error("Error creating user:", error);
+
+      if (error instanceof AuthError) {
+        return res
+          .status(error.statusCode)
+          .apiError(error.message, error.statusCode, { code: error.code });
+      }
+
+      return res.status(500).apiError("Error interno del servidor");
+    }
+  }
+
+  //  Actualizar rol por ID
+  async updateUserRoleById(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+
+      // Validar que el ID existe
+      if (!userId) {
+        return res.status(400).apiError("ID de usuario requerido", 400);
+      }
+
+      // Validar el body con el DTO
+      const dto = plainToClass(UpdateRoleDTO, req.body);
+      const errors = await validate(dto);
+
+      if (errors.length > 0) {
+        return res.status(400).apiValidationError(errors);
+      }
+
+      const authReq = req as AuthRequest;
+
+      const result = await userService.updateUserRoleById(
+        userId,
+        dto.role,
+        authReq.company.id,
+        authReq.user.id,
+      );
+
+      return res
+        .status(200)
+        .apiSuccess(result, "Rol actualizado correctamente");
+    } catch (error) {
+      logger.error("Error updating user role:", error);
+
+      if (error instanceof AuthError) {
+        return res
+          .status(error.statusCode)
+          .apiError(error.message, error.statusCode, { code: error.code });
+      }
+
+      return res.status(500).apiError("Error interno del servidor");
+    }
+  }
+
+  // NUEVO: Método con validación
+  async deleteUserById(req: Request, res: Response) {
+    try {
+      // Validar el parámetro ID
+      const paramsDto = plainToClass(DeleteUserParamsDTO, req.params);
+      const paramsErrors = await validate(paramsDto);
+
+      if (paramsErrors.length > 0) {
+        return res.status(400).apiValidationError(paramsErrors);
+      }
+
+      const { id } = paramsDto;
+      const authReq = req as AuthRequest;
+
+      const result = await userService.deleteUserById(
+        id,
+        authReq.company.id,
+        authReq.user.id,
+      );
+
+      return res
+        .status(200)
+        .apiSuccess(result, "Usuario eliminado correctamente");
+    } catch (error) {
+      logger.error("Error deleting user:", error);
 
       if (error instanceof AuthError) {
         return res

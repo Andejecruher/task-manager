@@ -5,6 +5,7 @@ import { emailService } from "@/services/email";
 import { passwordService } from "@/services/password";
 import { AuthError } from "@/types";
 import { logger } from "@/utils/logger";
+import { Op } from "sequelize"; // <-- IMPORTANTE: Agregar esta importación
 
 export class UserService {
   async createUser(data: any, companyId: string): Promise<any> {
@@ -19,7 +20,6 @@ export class UserService {
           email: data.email,
           company_id: companyId,
         },
-
       });
 
       if (existingUser) {
@@ -33,16 +33,14 @@ export class UserService {
       const password = Math.random().toString(36).slice(-8);
       const passwordHash = await passwordService.hashPassword(password);
 
-      const user = await User.create(
-        {
-          email: data.email,
-          password_hash: passwordHash,
-          full_name: data.fullName,
-          company_id: companyId,
-          role: data.role || "user",
-          email_verified: false,
-        },
-      );
+      const user = await User.create({
+        email: data.email,
+        password_hash: passwordHash,
+        full_name: data.fullName, // Mantenemos fullName como en tu DTO
+        company_id: companyId,
+        role: data.role || "member", // Cambiado de "user" a "member" para coincidir con tus roles
+        email_verified: false,
+      });
 
       logger.info("Usuario creado", {
         userId: user.id,
@@ -53,7 +51,7 @@ export class UserService {
         user.email,
         user.full_name,
         company.name,
-        password
+        password,
       );
 
       return {
@@ -69,6 +67,199 @@ export class UserService {
       if (error instanceof AuthError) throw error;
       logger.error("Error creando usuario:", error);
       throw new AuthError("Error creando usuario", "CREATE_USER_ERROR", 500);
+    }
+  }
+
+  async deleteUserById(
+    targetUserId: string,
+    companyId: string,
+    requestingUserId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      //  Buscar usuario a eliminar
+      const targetUser = await User.findOne({
+        where: {
+          id: targetUserId,
+          company_id: companyId,
+        },
+      });
+
+      if (!targetUser) {
+        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+      }
+
+      // No permitir eliminarse a sí mismo
+      if (targetUserId === requestingUserId) {
+        throw new AuthError(
+          "No puedes eliminarte a ti mismo",
+          "FORBIDDEN",
+          403,
+        );
+      }
+
+      // 3. Solo owner puede eliminar admins
+      const requestingUser = await User.findByPk(requestingUserId);
+
+      if (targetUser.role === "admin" && requestingUser?.role !== "owner") {
+        throw new AuthError(
+          "Solo el owner puede eliminar administradores",
+          "FORBIDDEN",
+          403,
+        );
+      }
+
+      // 4. Eliminar usuario (soft delete)
+      await targetUser.update({
+        is_active: false,
+        deleted_at: new Date(),
+        email: `deleted_${Date.now()}_${targetUser.email}`, // Opcional: ofuscar email
+      });
+
+      logger.info("Usuario eliminado", {
+        deletedBy: requestingUserId,
+        deletedUser: targetUserId,
+        companyId,
+      });
+
+      return {
+        success: true,
+        message: "Usuario eliminado correctamente",
+      };
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error eliminando usuario:", error);
+      throw new AuthError("Error eliminando usuario", "DELETE_USER_ERROR", 500);
+    }
+  }
+
+  // ====================
+  // MÉTODO ACTUALIZADO para recibir los 4 parámetros
+  // ====================
+  async updateUserRoleById(
+    targetUserId: string,
+    newRole: string, // Nuevo rol
+    companyId: string, // ID de la compañía (del token)
+    requestingUserId: string,
+  ): Promise<any> {
+    try {
+      // 1. Verificar que el usuario que solicita existe
+      const requestingUser = await User.findByPk(requestingUserId, {
+        attributes: ["id", "role", "company_id"],
+      });
+
+      if (!requestingUser) {
+        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+      }
+
+      // 2. Verificar que el usuario solicitante pertenece a la misma compañía
+      if (requestingUser.company_id !== companyId) {
+        throw new AuthError("No perteneces a esta compañía", "FORBIDDEN", 403);
+      }
+
+      // 3. Solo owner puede cambiar roles
+      if (requestingUser.role !== "owner") {
+        throw new AuthError(
+          "No tienes permisos para modificar roles. Solo el owner puede hacer esto",
+          "FORBIDDEN",
+          403,
+        );
+      }
+
+      // 4. Buscar el usuario a actualizar (debe ser de la misma compañía)
+      const targetUser = await User.findOne({
+        where: {
+          id: targetUserId,
+          company_id: companyId,
+        },
+      });
+
+      if (!targetUser) {
+        throw new AuthError(
+          "Usuario no encontrado en esta compañía",
+          "USER_NOT_FOUND",
+          404,
+        );
+      }
+
+      // 5. No permitir cambiar el rol de otro owner
+      if (targetUser.role === "owner" && requestingUser.id !== targetUser.id) {
+        throw new AuthError(
+          "No puedes cambiar el rol de otro owner",
+          "FORBIDDEN",
+          403,
+        );
+      }
+
+      // 6. Si va a convertir a alguien en owner, verificar que no exista otro owner
+      if (newRole === "owner" && targetUser.role !== "owner") {
+        const existingOwner = await User.findOne({
+          where: {
+            company_id: companyId,
+            role: "owner",
+            deleted_at: null,
+          },
+        });
+
+        if (existingOwner && existingOwner.id !== targetUser.id) {
+          throw new AuthError(
+            "Ya existe un owner en esta compañía",
+            "OWNER_ALREADY_EXISTS",
+            409,
+          );
+        }
+      }
+
+      // 7. Si el target es owner y se está cambiando a otro rol, asegurar que queda al menos un admin
+      if (targetUser.role === "owner" && newRole !== "owner") {
+        const adminCount = await User.count({
+          where: {
+            company_id: companyId,
+            role: "admin",
+            deleted_at: null,
+            id: { [Op.ne]: targetUserId }, // [Op.ne] significa "no igual"
+          },
+        });
+
+        if (adminCount === 0) {
+          throw new AuthError(
+            "Debe haber al menos un admin en la compañía",
+            "ADMIN_REQUIRED",
+            409,
+          );
+        }
+      }
+
+      // 8. Actualizar el rol
+      targetUser.role = newRole;
+      targetUser.set("updated_at", new Date());
+      await targetUser.save();
+
+      logger.info("Rol actualizado", {
+        fromUserId: requestingUserId,
+        toUserId: targetUserId,
+        newRole,
+        companyId,
+      });
+
+      // 9. Retornar usuario sin datos sensibles
+      return {
+        id: targetUser.id,
+        email: targetUser.email,
+        full_name: targetUser.full_name,
+        role: targetUser.role,
+        company_id: targetUser.company_id,
+        email_verified: targetUser.email_verified,
+        is_active: targetUser.is_active,
+        updated_at: targetUser.updated_at,
+      };
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error actualizando rol:", error);
+      throw new AuthError(
+        "Error actualizando rol de usuario",
+        "UPDATE_ROLE_ERROR",
+        500,
+      );
     }
   }
 

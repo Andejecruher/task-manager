@@ -23,12 +23,13 @@ interface CompanyAttributes {
 interface CompanyCreationAttributes extends Optional<
   CompanyAttributes,
   "id" | "settings" | "features" | "plan"
-> { }
+> {}
 
 // Clase del modelo
 class Company
   extends Model<CompanyAttributes, CompanyCreationAttributes>
-  implements CompanyAttributes {
+  implements CompanyAttributes
+{
   declare id: string;
   declare name: string;
   declare slug: string;
@@ -161,7 +162,7 @@ Company.init(
     hooks: {
       beforeCreate: (company: Company) => {
         // Validaciones o transformaciones antes de crear
-        console.log(`🏢 Iniciando creacion de Compañía: ${company.name}`)
+        console.log(`🏢 Iniciando creacion de Compañía: ${company.name}`);
       },
       afterCreate: (company: Company) => {
         // Logging, notificaciones, etc.
@@ -185,8 +186,8 @@ Company.init(
         deleted_at: null,
       },
       attributes: {
-        exclude: ['subscription_id', 'trial_ends_at']
-      }
+        exclude: ["subscription_id", "trial_ends_at"],
+      },
     },
   },
 );

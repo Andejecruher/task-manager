@@ -30,7 +30,7 @@ router.patch(
 
 //  Eliminar usuario por ID
 router.delete(
-  "/:id/delete",
+  "/:id",
   authenticate,
   requireEmailVerified,
   CompanyGuard,

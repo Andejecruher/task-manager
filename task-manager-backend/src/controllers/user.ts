@@ -71,10 +71,10 @@ export class UserController {
   //  Actualizar rol por ID
   async updateUserRoleById(req: Request, res: Response) {
     try {
-      const { userId } = req.params;
+      const { id } = req.params;
 
       // Validar que el ID existe
-      if (!userId) {
+      if (!id) {
         return res.status(400).apiError("ID de usuario requerido", 400);
       }
 
@@ -89,7 +89,7 @@ export class UserController {
       const authReq = req as AuthRequest;
 
       const result = await userService.updateUserRoleById(
-        userId,
+        id,
         dto.role,
         authReq.company.id,
         authReq.user.id,

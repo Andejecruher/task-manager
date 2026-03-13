@@ -1,9 +1,9 @@
 import { config } from "@/config";
-import { Company } from "@/database/models/Company";
 import { User, UserSession } from "@/database/models";
+import { Company } from "@/database/models/Company";
 import { emailService } from "@/services/email";
 import { passwordService } from "@/services/password";
-import { AuthError } from "@/types";
+import { AuthError, NotFoundError, ValidationError } from "@/types";
 import { logger } from "@/utils/logger";
 import { Op } from "sequelize"; // <-- IMPORTANTE: Agregar esta importación
 
@@ -289,7 +289,7 @@ export class UserService {
       });
 
       if (!targetUser) {
-        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+        throw new NotFoundError("Usuario");
       }
 
       // 3. Validaciones rápidas
@@ -310,10 +310,8 @@ export class UserService {
       }
 
       if (!targetUser.is_active) {
-        throw new AuthError(
+        throw new ValidationError(
           "El usuario ya está desactivado",
-          "USER_ALREADY_INACTIVE",
-          400,
         );
       }
 

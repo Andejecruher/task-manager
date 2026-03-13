@@ -20,7 +20,7 @@ router.post(
 
 //  Actualizar rol por ID
 router.patch(
-  "/:id/role",
+  "/:id/rol",
   authenticate,
   requireEmailVerified,
   CompanyGuard,
@@ -36,6 +36,16 @@ router.delete(
   CompanyGuard,
   extractDeviceInfo,
   userController.deleteUserById.bind(userController),
+);
+
+// desactivar usuario por ID
+router.patch(
+  "/:id/deactivate",
+  authenticate,
+  requireEmailVerified,
+  CompanyGuard,
+  extractDeviceInfo,
+  userController.deactivateUserById.bind(userController),
 );
 
 export default router;

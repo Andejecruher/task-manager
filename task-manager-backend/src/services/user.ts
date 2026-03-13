@@ -1,6 +1,6 @@
 import { config } from "@/config";
 import { Company } from "@/database/models/Company";
-import { User } from "@/database/models/User";
+import { User, UserSession } from "@/database/models";
 import { emailService } from "@/services/email";
 import { passwordService } from "@/services/password";
 import { AuthError } from "@/types";
@@ -258,6 +258,104 @@ export class UserService {
       throw new AuthError(
         "Error actualizando rol de usuario",
         "UPDATE_ROLE_ERROR",
+        500,
+      );
+    }
+  }
+
+  async deactivateUserById(
+    targetUserId: string,
+    companyId: string,
+    requestingUserId: string,
+  ): Promise<any> {
+    try {
+      // 1. Verificar que quien ejecuta es OWNER
+      const requestingUser = await User.findByPk(requestingUserId);
+
+      if (requestingUser?.role !== "owner") {
+        throw new AuthError(
+          "Solo el owner puede desactivar usuarios",
+          "FORBIDDEN",
+          403,
+        );
+      }
+
+      // 2. Buscar usuario a desactivar (misma compañía)
+      const targetUser = await User.findOne({
+        where: {
+          id: targetUserId,
+          company_id: companyId,
+        },
+      });
+
+      if (!targetUser) {
+        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+      }
+
+      // 3. Validaciones rápidas
+      if (targetUser.id === requestingUserId) {
+        throw new AuthError(
+          "No puedes desactivarte a ti mismo",
+          "FORBIDDEN",
+          403,
+        );
+      }
+
+      if (targetUser.role === "owner") {
+        throw new AuthError(
+          "No puedes desactivar a otro owner",
+          "FORBIDDEN",
+          403,
+        );
+      }
+
+      if (!targetUser.is_active) {
+        throw new AuthError(
+          "El usuario ya está desactivado",
+          "USER_ALREADY_INACTIVE",
+          400,
+        );
+      }
+
+      // 4. Cerrar TODAS sus sesiones activas
+      const [sessionsClosed] = await UserSession.update(
+        {
+          is_active: false,
+          revoked_at: new Date(),
+        },
+        {
+          where: {
+            user_id: targetUserId,
+            is_active: true,
+          },
+        },
+      );
+
+      // 5. Desactivar usuario
+      await targetUser.update({
+        is_active: false,
+        updated_at: new Date(), // ✅ Sequelize lo maneja automáticamente
+      });
+
+      // 6. Log y respuesta
+      logger.info(
+        `Usuario ${targetUserId} desactivado por ${requestingUserId}`,
+      );
+
+      return {
+        id: targetUser.id,
+        email: targetUser.email,
+        full_name: targetUser.full_name,
+        role: targetUser.role,
+        is_active: false,
+        sessions_closed: sessionsClosed,
+      };
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error desactivando usuario:", error);
+      throw new AuthError(
+        "Error desactivando usuario",
+        "DEACTIVATE_USER_ERROR",
         500,
       );
     }

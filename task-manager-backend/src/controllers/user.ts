@@ -41,6 +41,13 @@ class DeleteUserParamsDTO {
   id!: string;
 }
 
+// NUEVO: DTO para validar parámetros de desactivación
+class DeactivateUserParamsDTO {
+  @IsUUID()
+  @IsNotEmpty()
+  id!: string;
+}
+
 export class UserController {
   async createUser(req: Request, res: Response) {
     try {
@@ -136,6 +143,40 @@ export class UserController {
         .apiSuccess(result, "Usuario eliminado correctamente");
     } catch (error) {
       logger.error("Error deleting user:", error);
+
+      if (error instanceof AuthError) {
+        return res
+          .status(error.statusCode)
+          .apiError(error.message, error.statusCode, { code: error.code });
+      }
+
+      return res.status(500).apiError("Error interno del servidor");
+    }
+  }
+
+  // NUEVO: Método para desactivar usuario
+  async deactivateUserById(req: Request, res: Response) {
+    try {
+      // Validar el parámetro ID
+      const paramsDto = plainToClass(DeactivateUserParamsDTO, req.params);
+      const paramsErrors = await validate(paramsDto);
+
+      if (paramsErrors.length > 0) {
+        return res.status(400).apiValidationError(paramsErrors);
+      }
+
+      const { id } = paramsDto;
+      const authReq = req as AuthRequest;
+      const result = await userService.deactivateUserById(
+        id,
+        authReq.company.id,
+        authReq.user.id,
+      );
+      return res
+        .status(200)
+        .apiSuccess(result, "Usuario desactivado correctamente");
+    } catch (error) {
+      logger.error("Error deactivating user:", error);
 
       if (error instanceof AuthError) {
         return res

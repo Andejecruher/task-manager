@@ -32,10 +32,10 @@ RUN npm ci --prefer-offline --no-audit
 COPY . .
 
 # Cambiar propietario de archivos
-#RUN chown -R nodejs:nodejs /app
+RUN chown -R nodejs:nodejs /app
 
 # Cambiar a usuario no-root
-#USER nodejs
+USER nodejs
 
 # Exponer puertos
 EXPOSE 3000 9229

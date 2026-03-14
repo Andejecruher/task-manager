@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # Base de datos principal
   postgres:
@@ -49,7 +47,7 @@ services:
     volumes:
       - redis_data_dev:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "redis_dev_password", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -58,18 +56,13 @@ services:
       - taskmanager-network
 
   # Interface de administración de PostgreSQL
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: taskmanager_pgadmin_dev
+  adminer:
+    image: adminer:latest
+    container_name: taskmanager_adminer_dev
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
-      PGADMIN_CONFIG_SERVER_MODE: "False"
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      ADMINER_DEFAULT_SERVER: postgres
     ports:
-      - "8080:80"
-    volumes:
-      - pgadmin_data_dev:/var/lib/pgadmin
+      - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -129,7 +122,6 @@ services:
     command: >
       sh -c "
         npm install &&
-        npm run build &&
         npm run dev
       "
     restart: unless-stopped
@@ -146,5 +138,3 @@ volumes:
     name: taskmanager_postgres_data_dev
   redis_data_dev:
     name: taskmanager_redis_data_dev
-  pgadmin_data_dev:
-    name: taskmanager_pgadmin_data_dev

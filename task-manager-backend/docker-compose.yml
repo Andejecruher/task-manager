@@ -110,11 +110,12 @@ services:
       JWT_SECRET: dev_jwt_secret_key_change_in_production
       APP_PORT: 3000
       LOG_LEVEL: debug
-      LOG_TO_FILE: "false"
+      LOG_TO_FILE: "true"
     volumes:
       - .:/app
       - /app/node_modules
       - /app/dist
+      - app_logs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -139,3 +140,5 @@ volumes:
     name: taskmanager_postgres_data_dev
   redis_data_dev:
     name: taskmanager_redis_data_dev
+  app_logs:
+    name: taskmanager_app_logs_dev

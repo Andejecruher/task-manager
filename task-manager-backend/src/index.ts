@@ -4,7 +4,6 @@ import "dotenv/config";
 import { app } from "@/app";
 import { config } from "@/config";
 import { connectRedis } from "@/config/redis";
-import { connectDatabase } from "@/database/connection";
 import { sequelizeConnection } from "@/database/connection-sequelize";
 import { initializeAssociations } from "@/database/models";
 import { logger } from "@/utils/logger";
@@ -15,11 +14,6 @@ const NODE_ENV = config.NODE_ENV;
 async function startServer() {
   try {
     logger.info("🚀 Iniciando Task Manager API...");
-
-    // 1. Conectar a PostgreSQL
-    logger.info("🔌 Conectando a PostgreSQL...");
-    await connectDatabase();
-    logger.info("✅ PostgreSQL conectado correctamente");
 
     try {
       logger.info("🔎 Verificando conexión Sequelize...");

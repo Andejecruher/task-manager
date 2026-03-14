@@ -7,6 +7,7 @@ RUN apk add --no-cache \
     git \
     nano \
     postgresql-client \
+    su-exec \
     tzdata \
     dumb-init
 
@@ -34,8 +35,9 @@ COPY . .
 # Cambiar propietario de archivos
 RUN chown -R nodejs:nodejs /app
 
-# Cambiar a usuario no-root
-USER nodejs
+# Copiar entrypoint de desarrollo
+COPY docker/app/entrypoint.dev.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Exponer puertos
 EXPOSE 3000 9229
@@ -45,7 +47,7 @@ EXPOSE 3000 9229
 #    CMD curl -f http://localhost:3000/health || exit 1
 
 # Usar dumb-init para manejar signals correctamente (resolver desde PATH)
-ENTRYPOINT ["dumb-init", "--"]
+ENTRYPOINT ["dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
 
 # Comando por defecto para desarrollo
 CMD ["npm", "run", "dev"]

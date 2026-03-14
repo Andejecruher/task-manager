@@ -22,7 +22,9 @@ build/
 docker-compose.override.yml
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo

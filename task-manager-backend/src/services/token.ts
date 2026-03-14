@@ -1,8 +1,8 @@
 import crypto from "crypto";
-import jwt, { SignOptions } from "jsonwebtoken";
+import jwt, { type SignOptions } from "jsonwebtoken";
 import { config } from "@/config";
 import { getRedisClient } from "@/config/redis";
-import { AuthError, JwtPayload, RefreshTokenPayload } from "@/types";
+import { AuthError, type JwtPayload, type RefreshTokenPayload } from "@/types";
 import { logger } from "@/utils/logger";
 
 export class TokenService {
@@ -144,7 +144,7 @@ export class TokenService {
     const redisKey = `reset_token:${hashedToken}`;
     const redisValue = JSON.stringify({ userId, companyId });
 
-    getRedisClient().setex(redisKey, 3600, redisValue);
+    void getRedisClient().setex(redisKey, 3600, redisValue);
 
     return { token, expiresAt };
   }
@@ -193,7 +193,7 @@ export class TokenService {
     const redisKey = `verify_email:${hashedToken}`;
     const redisValue = JSON.stringify({ userId, companyId });
 
-    getRedisClient().setex(redisKey, 86400, redisValue);
+    void getRedisClient().setex(redisKey, 86400, redisValue);
 
     return { token, expiresAt };
   }
@@ -307,7 +307,7 @@ export class TokenService {
    * Parsea tiempo string a segundos
    */
   private parseTimeToSeconds(timeString: string): number {
-    const units: { [key: string]: number } = {
+    const units: Record<string, number> = {
       s: 1,
       m: 60,
       h: 3600,

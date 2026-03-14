@@ -1,10 +1,10 @@
 import { v4 as uuidv4 } from "uuid";
 import { getRedisClient } from "@/config/redis";
-import { AuthError, DeviceInfo, SessionInfo } from "@/types";
+import { AuthError, type DeviceInfo, type SessionInfo } from "@/types";
 import { logger } from "@/utils/logger";
 import { tokenService } from "@/services/token";
 import { UserSession } from "@/database/models/UserSession";
-import { Op, Transaction } from "sequelize";
+import { Op, type Transaction } from "sequelize";
 
 export class SessionService {
   /**

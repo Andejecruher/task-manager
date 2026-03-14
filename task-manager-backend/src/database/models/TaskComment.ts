@@ -24,11 +24,12 @@ interface TaskCommentCreationAttributes extends Optional<
   | "updated_at"
   | "updated_by"
   | "deleted_at"
-> { }
+> {}
 
 class TaskComment
   extends Model<TaskCommentAttributes, TaskCommentCreationAttributes>
-  implements TaskCommentAttributes {
+  implements TaskCommentAttributes
+{
   declare id: string;
   declare company_id: string;
   declare task_id: string;

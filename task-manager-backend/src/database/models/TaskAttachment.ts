@@ -27,11 +27,12 @@ interface TaskAttachmentCreationAttributes extends Optional<
   | "thumbnail_url"
   | "uploaded_at"
   | "deleted_at"
-> { }
+> {}
 
 class TaskAttachment
   extends Model<TaskAttachmentAttributes, TaskAttachmentCreationAttributes>
-  implements TaskAttachmentAttributes {
+  implements TaskAttachmentAttributes
+{
   declare id: string;
   declare company_id: string;
   declare task_id: string;

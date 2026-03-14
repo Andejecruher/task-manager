@@ -1,13 +1,13 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
 
+import { app } from "@/app";
+import { config } from "@/config";
 import { connectRedis } from "@/config/redis";
 import { connectDatabase } from "@/database/connection";
 import { sequelizeConnection } from "@/database/connection-sequelize";
 import { initializeAssociations } from "@/database/models";
 import { logger } from "@/utils/logger";
-import { app } from "@/app";
-import { config } from "@/config";
 
 const PORT = config.PORT;
 const NODE_ENV = config.NODE_ENV;
@@ -20,10 +20,12 @@ async function startServer() {
     logger.info("✅ PostgreSQL conectado correctamente");
 
     try {
+      logger.info("🔎 Verificando conexión Sequelize...");
       await sequelizeConnection.authenticate();
-      console.log("Connection has been established successfully.");
+      logger.info("✅ Sequelize autenticado correctamente");
 
       // Inicializar asociaciones entre modelos antes de sincronizar
+      logger.info("🔎 Inicializando asociaciones de modelos...");
       initializeAssociations();
       logger.info("✅ Asociaciones de modelos inicializadas");
 
@@ -31,8 +33,11 @@ async function startServer() {
       const enableModelSync = config.database.dbSynMode;
       if (enableModelSync) {
         const enableSchemaAlter = config.database.dbSynAlter;
+        logger.info("🔎 Ejecutando Sequelize sync...", {
+          alter: enableSchemaAlter,
+        });
         await sequelizeConnection.sync({ alter: enableSchemaAlter });
-        console.log("All models were synchronized successfully.");
+        logger.info("✅ Sequelize sync completado");
 
         if (enableSchemaAlter) {
           logger.warn("⚠️ DB_SYNC_ALTER=true: Sequelize alter está habilitado");
@@ -41,7 +46,8 @@ async function startServer() {
         logger.info("⏭️ Sequelize sync omitido (usar migraciones SQL)");
       }
     } catch (error) {
-      console.error("Unable to connect to the database:", error);
+      logger.error("❌ Falló la inicialización de Sequelize", error);
+      throw error;
     }
 
     // 2. Conectar a Redis (si está configurado)
@@ -60,10 +66,10 @@ async function startServer() {
     });
 
     // 4. Manejar shutdown graceful
-    const gracefulShutdown = async (signal: string) => {
+    const gracefulShutdown = (signal: string) => {
       logger.info(`⚠️  Recibido ${signal}. Cerrando servidor...`);
 
-      server.close(async () => {
+      server.close(() => {
         logger.info("👋 Servidor HTTP cerrado");
 
         // Aquí cerrarías conexiones a DB, Redis, etc.
@@ -79,8 +85,12 @@ async function startServer() {
     };
 
     // Capturar señales de terminación
-    process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-    process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+    process.on("SIGTERM", () => {
+      gracefulShutdown("SIGTERM");
+    });
+    process.on("SIGINT", () => {
+      gracefulShutdown("SIGINT");
+    });
 
     // Manejar errores no capturados
     process.on("unhandledRejection", (reason, promise) => {
@@ -98,4 +108,4 @@ async function startServer() {
 }
 
 // Iniciar aplicación
-startServer();
+void startServer();

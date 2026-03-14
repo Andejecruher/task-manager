@@ -1,7 +1,8 @@
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express, { Request, Response } from "express";
+import express from "express";
+import type { Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -42,7 +43,9 @@ const swaggerOptions = {
   apis: ["./src/routes/*.ts", "./src/controllers/*.ts"],
 };
 
-const swaggerSpec = swaggerJsdoc(swaggerOptions as any);
+const swaggerSpec = swaggerJsdoc(
+  swaggerOptions as Parameters<typeof swaggerJsdoc>[0],
+);
 
 // Crear aplicación Express
 export const app = express();

@@ -5,19 +5,46 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  type ValidationError as ClassValidatorError,
   validate,
 } from "class-validator";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { sessionService as Session } from "@/services/session";
 import {
   AuthError,
-  AuthRequest,
-  LoginDTO,
-  RegisterDTO,
-  ResetPasswordDTO,
+  type AuthRequest,
+  type LoginDTO,
+  type RegisterDTO,
+  type ResetPasswordDTO,
 } from "@/types";
 import { logger } from "@/utils/logger";
 import { authService } from "@/services/auth";
+
+interface AuthCookieTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  refreshExpiresIn?: number;
+}
+
+function isClassValidatorErrors(
+  value: unknown,
+): value is ClassValidatorError[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) => typeof item === "object" && item !== null && "property" in item,
+    )
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getStringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
 
 // DTOs para validación
 class RegisterDTOClass implements RegisterDTO {
@@ -105,14 +132,18 @@ export class AuthController {
       const errors = await validate(dto);
 
       if (errors.length > 0) {
-        return (res.status(400) as any).apiValidationError(errors);
+        return res.status(400).apiValidationError(errors);
       }
 
-      const result = await authService.register(dto, (req as any).deviceInfo);
+      const result = await authService.register(
+        req.body as RegisterDTO,
+        req.deviceInfo || {},
+      );
 
       res.status(201).apiSuccess(result, "Registro exitoso");
+      return;
     } catch (error) {
-      this.handleError(error, res, "register");
+      return this.handleError(error, res, "register");
     }
   }
 
@@ -131,8 +162,8 @@ export class AuthController {
         return res.status(400).apiValidationError(errors);
       }
 
-      const deviceInfo = (req as any).deviceInfo || {};
-      const ipAddress = req.ip || req.connection.remoteAddress;
+      const deviceInfo = req.deviceInfo || {};
+      const ipAddress = req.ip || req.socket.remoteAddress;
 
       const result = await authService.login(dto, deviceInfo, ipAddress);
 
@@ -147,7 +178,11 @@ export class AuthController {
 
   async refreshTokens(req: Request, res: Response) {
     try {
-      const refreshToken = req.body.refreshToken || req.cookies.refreshToken;
+      const body = isRecord(req.body) ? req.body : {};
+      const cookies = isRecord(req.cookies) ? req.cookies : {};
+      const refreshToken =
+        getStringValue(body.refreshToken) ||
+        getStringValue(cookies.refreshToken);
 
       if (!refreshToken) {
         throw new AuthError(
@@ -175,7 +210,9 @@ export class AuthController {
    */
   async requestPasswordReset(req: Request, res: Response) {
     try {
-      const { email, companySlug } = req.body;
+      const body = isRecord(req.body) ? req.body : {};
+      const email = getStringValue(body.email);
+      const companySlug = getStringValue(body.companySlug);
 
       if (!email || !companySlug) {
         throw new AuthError(
@@ -280,7 +317,7 @@ export class AuthController {
   async getProfile(req: Request, res: Response) {
     try {
       const authReq = req as AuthRequest;
-      const profile = await authService.getProfile(authReq.user.id);
+      const profile: unknown = await authService.getProfile(authReq.user.id);
 
       res.apiSuccess(profile, "Perfil obtenido");
     } catch (error) {
@@ -304,7 +341,7 @@ export class AuthController {
         return res.status(400).apiValidationError(errors);
       }
 
-      const updatedProfile = await authService.updateProfile(
+      const updatedProfile: unknown = await authService.updateProfile(
         authReq.user.id,
         authReq.company.id,
         dto,
@@ -321,7 +358,7 @@ export class AuthController {
    * @desc Obtener información del usuario autenticado
    * @access Private
    */
-  async getCurrentUser(req: Request, res: Response) {
+  getCurrentUser(req: Request, res: Response) {
     try {
       const authReq = req as AuthRequest;
 
@@ -381,7 +418,7 @@ export class AuthController {
   async getSessions(req: Request, res: Response) {
     try {
       const authReq = req as AuthRequest;
-      const sessions = await authService.getSession(
+      const sessions: unknown = await authService.getSession(
         authReq.user.id,
         authReq.company.id,
         authReq.sessionId,
@@ -397,29 +434,27 @@ export class AuthController {
   // MÉTODOS PRIVADOS
   // ====================
 
-  private handleError(error: any, res: Response, endpoint: string) {
+  private handleError(error: unknown, res: Response, endpoint: string) {
     logger.error(`Error en auth/${endpoint}:`, error);
 
     if (error instanceof AuthError) {
-      return (res.status(error.statusCode) as any).apiError(
-        error.message,
-        error.statusCode,
-        {
+      return res
+        .status(error.statusCode)
+        .apiError(error.message, error.statusCode, {
           code: error.code,
-        },
-      );
+        });
     }
 
     // Manejar errores de validación de class-validator
-    if (Array.isArray(error) && error[0]?.constraints) {
-      return (res.status(400) as any).apiValidationError(error);
+    if (isClassValidatorErrors(error)) {
+      return res.status(400).apiValidationError(error);
     }
 
     // Error inesperado
-    (res.status(500) as any).apiError("Error interno del servidor");
+    return res.status(500).apiError("Error interno del servidor");
   }
 
-  private setAuthCookies(res: Response, tokens: any) {
+  private setAuthCookies(res: Response, tokens: AuthCookieTokens) {
     const isProduction = process.env.NODE_ENV === "production";
 
     // Access token cookie (httpOnly, seguro)

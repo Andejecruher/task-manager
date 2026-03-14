@@ -1,5 +1,5 @@
 declare module "winston-daily-rotate-file" {
-  import TransportStream from "winston-transport";
+  import type TransportStream from "winston-transport";
 
   interface DailyRotateFileOptions
     extends TransportStream.TransportStreamOptions {
@@ -9,7 +9,7 @@ declare module "winston-daily-rotate-file" {
     maxSize?: string | number;
     maxFiles?: string | number;
     level?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   const DailyRotateFile: new (opts?: DailyRotateFileOptions) => TransportStream;

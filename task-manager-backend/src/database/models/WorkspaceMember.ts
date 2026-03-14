@@ -22,11 +22,12 @@ interface WorkspaceMemberCreationAttributes extends Optional<
   | "joined_at"
   | "invited_by"
   | "invited_at"
-> { }
+> {}
 
 class WorkspaceMember
   extends Model<WorkspaceMemberAttributes, WorkspaceMemberCreationAttributes>
-  implements WorkspaceMemberAttributes {
+  implements WorkspaceMemberAttributes
+{
   declare id: string;
   declare workspace_id: string;
   declare user_id: string;

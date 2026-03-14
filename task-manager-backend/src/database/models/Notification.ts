@@ -19,11 +19,12 @@ interface NotificationAttributes {
 interface NotificationCreationAttributes extends Optional<
   NotificationAttributes,
   "id" | "is_read" | "is_archived" | "created_at" | "read_at" | "expires_at"
-> { }
+> {}
 
 class Notification
   extends Model<NotificationAttributes, NotificationCreationAttributes>
-  implements NotificationAttributes {
+  implements NotificationAttributes
+{
   declare id: string;
   declare company_id: string;
   declare user_id: string;

@@ -6,13 +6,13 @@ interface TaskHistoryAttributes {
   company_id: string;
   task_id: string;
   action:
-  | "created"
-  | "updated"
-  | "deleted"
-  | "status_changed"
-  | "assigned"
-  | "commented"
-  | "attachment_added";
+    | "created"
+    | "updated"
+    | "deleted"
+    | "status_changed"
+    | "assigned"
+    | "commented"
+    | "attachment_added";
   field_changed?: string;
   old_value?: Record<string, unknown>;
   new_value?: Record<string, unknown>;
@@ -29,11 +29,12 @@ interface TaskHistoryCreationAttributes extends Optional<
   | "new_value"
   | "change_description"
   | "changed_at"
-> { }
+> {}
 
 class TaskHistory
   extends Model<TaskHistoryAttributes, TaskHistoryCreationAttributes>
-  implements TaskHistoryAttributes {
+  implements TaskHistoryAttributes
+{
   declare id: string;
   declare company_id: string;
   declare task_id: string;
@@ -87,7 +88,7 @@ TaskHistory.init(
         "status_changed",
         "assigned",
         "commented",
-        "attachment_added"
+        "attachment_added",
       ),
       allowNull: false,
     },

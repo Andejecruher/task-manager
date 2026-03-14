@@ -3,15 +3,15 @@ import { sequelizeConnection } from "@/database/connection-sequelize";
 import { Company, User } from "@/database/models";
 import {
   AuthError,
-  ChangePasswordDTO,
+  type ChangePasswordDTO,
   COMPANY_SLUG_REGEX,
-  DeviceInfo,
+  type DeviceInfo,
   EMAIL_REGEX,
-  LoginDTO,
-  LoginResponse,
-  RegisterDTO,
-  ResetPasswordDTO,
-  UpdateProfileDTO,
+  type LoginDTO,
+  type LoginResponse,
+  type RegisterDTO,
+  type ResetPasswordDTO,
+  type UpdateProfileDTO,
 } from "@/types";
 import { logger } from "@/utils/logger";
 import { emailService } from "./email";

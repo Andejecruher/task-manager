@@ -1,5 +1,6 @@
 import { userService } from "@/services/user";
-import { AuthError, AuthRequest } from "@/types";
+import type { AuthRequest } from "@/types";
+import { AuthError } from "@/types";
 import { logger } from "@/utils/logger";
 import { plainToClass } from "class-transformer";
 import {
@@ -11,7 +12,7 @@ import {
   IsUUID,
   validate,
 } from "class-validator";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 
 class CreateUserDTO {
   @IsEmail()
@@ -59,7 +60,10 @@ export class UserController {
       }
 
       const authReq = req as AuthRequest;
-      const result = await userService.createUser(dto, authReq.company.id);
+      const result: unknown = await userService.createUser(
+        dto,
+        authReq.company.id,
+      );
 
       return res.status(201).apiSuccess(result, "Usuario creado exitosamente");
     } catch (error) {
@@ -95,7 +99,7 @@ export class UserController {
 
       const authReq = req as AuthRequest;
 
-      const result = await userService.updateUserRoleById(
+      const result: unknown = await userService.updateUserRoleById(
         id,
         dto.role,
         authReq.company.id,
@@ -132,7 +136,7 @@ export class UserController {
       const { id } = paramsDto;
       const authReq = req as AuthRequest;
 
-      const result = await userService.deleteUserById(
+      const result: unknown = await userService.deleteUserById(
         id,
         authReq.company.id,
         authReq.user.id,
@@ -167,7 +171,7 @@ export class UserController {
 
       const { id } = paramsDto;
       const authReq = req as AuthRequest;
-      const result = await userService.deactivateUserById(
+      const result: unknown = await userService.deactivateUserById(
         id,
         authReq.company.id,
         authReq.user.id,

@@ -4,14 +4,32 @@ import { UserSession } from "@/database/models/UserSession";
 import { AuditLogs } from "@/database/models/AuditLogs";
 import { Invitation } from "@/database/models/Invitation";
 import { Notification } from "@/database/models/Notification";
-import { Workspace, setupWorkspaceAssociations } from "@/database/models/Workspace";
-import { WorkspaceMember, setupWorkspaceMemberAssociations } from "@/database/models/WorkspaceMember";
+import {
+  Workspace,
+  setupWorkspaceAssociations,
+} from "@/database/models/Workspace";
+import {
+  WorkspaceMember,
+  setupWorkspaceMemberAssociations,
+} from "@/database/models/WorkspaceMember";
 import { Board, setupBoardAssociations } from "@/database/models/Board";
-import { BoardColumn, setupBoardColumnAssociations } from "@/database/models/BoardColumn";
+import {
+  BoardColumn,
+  setupBoardColumnAssociations,
+} from "@/database/models/BoardColumn";
 import { Task, setupTaskAssociations } from "@/database/models/Task";
-import { TaskComment, setupTaskCommentAssociations } from "@/database/models/TaskComment";
-import { TaskAttachment, setupTaskAttachmentAssociations } from "@/database/models/TaskAttachment";
-import { TaskHistory, setupTaskHistoryAssociations } from "@/database/models/TaskHistory";
+import {
+  TaskComment,
+  setupTaskCommentAssociations,
+} from "@/database/models/TaskComment";
+import {
+  TaskAttachment,
+  setupTaskAttachmentAssociations,
+} from "@/database/models/TaskAttachment";
+import {
+  TaskHistory,
+  setupTaskHistoryAssociations,
+} from "@/database/models/TaskHistory";
 
 export {
   Company,

@@ -29,7 +29,8 @@ type AuditLogsCreationAttributes = Optional<
 
 class AuditLogs
   extends Model<AuditLogsAttributes, AuditLogsCreationAttributes>
-  implements AuditLogsAttributes {
+  implements AuditLogsAttributes
+{
   declare id: string;
   declare company_id: string;
   declare action: string;

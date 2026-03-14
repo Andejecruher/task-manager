@@ -30,11 +30,12 @@ interface WorkspaceCreationAttributes extends Optional<
   | "updated_at"
   | "created_by"
   | "deleted_at"
-> { }
+> {}
 
 class Workspace
   extends Model<WorkspaceAttributes, WorkspaceCreationAttributes>
-  implements WorkspaceAttributes {
+  implements WorkspaceAttributes
+{
   declare id: string;
   declare company_id: string;
   declare name: string;

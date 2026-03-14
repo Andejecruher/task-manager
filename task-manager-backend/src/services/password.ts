@@ -6,7 +6,7 @@ import { logger } from "@/utils/logger";
 export class PasswordService {
   private readonly saltRounds: number;
 
-  constructor(saltRounds: number = 12) {
+  constructor(saltRounds = 12) {
     this.saltRounds = saltRounds;
   }
 
@@ -73,7 +73,7 @@ export class PasswordService {
   /**
    * Genera código numérico para verificación
    */
-  generateVerificationCode(length: number = 6): string {
+  generateVerificationCode(length = 6): string {
     const numbers = "0123456789";
     let code = "";
 
@@ -118,7 +118,7 @@ export class PasswordService {
   /**
    * Genera contraseña aleatoria segura
    */
-  generateSecurePassword(length: number = 16): string {
+  generateSecurePassword(length = 16): string {
     const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const lowercase = "abcdefghijklmnopqrstuvwxyz";
     const numbers = "0123456789";

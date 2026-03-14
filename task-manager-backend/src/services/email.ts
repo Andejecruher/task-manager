@@ -23,7 +23,7 @@ export class NodemailerService {
       });
       logger.info(`Email enviado a ${to} con asunto "${subject}"`);
     } catch (error) {
-      console.error("Error enviando email:", error);
+      logger.error("Error enviando email:", error);
       throw new Error("No se pudo enviar el email");
     }
   }
@@ -38,7 +38,7 @@ export class NodemailerService {
       });
       logger.info(`Email enviado a ${to} con asunto "${subject}"`);
     } catch (error) {
-      console.error("Error enviando email:", error);
+      logger.error("Error enviando email:", error);
       throw new Error("No se pudo enviar el email");
     }
   }
@@ -54,7 +54,7 @@ export class NodemailerService {
       });
       logger.info(`Email enviado a ${to} con asunto "${subject}"`);
     } catch (error) {
-      console.error("Error enviando email:", error);
+      logger.error("Error enviando email:", error);
       throw new Error("No se pudo enviar el email");
     }
   }

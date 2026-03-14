@@ -27,11 +27,12 @@ interface BoardColumnCreationAttributes extends Optional<
   | "created_at"
   | "updated_at"
   | "created_by"
-> { }
+> {}
 
 class BoardColumn
   extends Model<BoardColumnAttributes, BoardColumnCreationAttributes>
-  implements BoardColumnAttributes {
+  implements BoardColumnAttributes
+{
   declare id: string;
   declare board_id: string;
   declare company_id: string;

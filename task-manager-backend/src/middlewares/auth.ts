@@ -1,8 +1,15 @@
 import { sessionService } from "@/services/session";
 import { tokenService } from "@/services/token";
-import { AuthError, AuthRequest, AuthUser } from "@/types";
+import type {
+  AuthRequest,
+  AuthUser,
+  CompanyContext,
+  DeviceInfo,
+  JwtPayload,
+} from "@/types";
+import { AuthError } from "@/types";
 import { logger } from "@/utils/logger";
-import { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { User } from "@/database/models/User";
 import { Company } from "@/database/models/Company";
 /**
@@ -17,7 +24,7 @@ export const authenticate = async (
   try {
     // 1. Extraer token del header
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!authHeader?.startsWith("Bearer ")) {
       throw new AuthError("Token no proporcionado", "MISSING_TOKEN", 401);
     }
 
@@ -95,15 +102,19 @@ export const extractDeviceInfo = (
   _: Response,
   next: NextFunction,
 ) => {
-  const deviceInfo = {
-    browser: req.headers["user-agent"] || "unknown",
-    os: getOSFromUserAgent(req.headers["user-agent"] as string),
-    device: getDeviceFromUserAgent(req.headers["user-agent"] as string),
-    ip: req.ip || req.connection.remoteAddress,
-    userAgent: req.headers["user-agent"],
-  };
+  const userAgentHeader = req.headers["user-agent"];
+  const userAgent =
+    typeof userAgentHeader === "string" ? userAgentHeader : "unknown";
 
-  (req as any).deviceInfo = deviceInfo;
+  const deviceInfo = {
+    browser: userAgent,
+    os: getOSFromUserAgent(userAgent),
+    device: getDeviceFromUserAgent(userAgent),
+    ip: req.ip || req.socket.remoteAddress || "unknown",
+    userAgent,
+  } satisfies DeviceInfo;
+
+  req.deviceInfo = deviceInfo;
   next();
 };
 
@@ -155,15 +166,15 @@ function getDeviceFromUserAgent(userAgent: string): string {
   return "Desktop";
 }
 
-async function getUserFromPayload(payload: any): Promise<AuthUser | null> {
+async function getUserFromPayload(
+  payload: JwtPayload,
+): Promise<AuthUser | null> {
   try {
-    const result = await User.findByPk(payload.userId);
+    const user = await User.findByPk(payload.userId);
 
-    if (!result?.dataValues) {
+    if (!user) {
       return null;
     }
-
-    const user = result.dataValues;
 
     return {
       id: user.id,
@@ -182,22 +193,22 @@ async function getUserFromPayload(payload: any): Promise<AuthUser | null> {
   }
 }
 
-async function getCompanyFromPayload(payload: any): Promise<any> {
+async function getCompanyFromPayload(
+  payload: JwtPayload,
+): Promise<CompanyContext | null> {
   try {
-    const result = await Company.findByPk(payload.companyId);
+    const company = await Company.findByPk(payload.companyId);
 
-    if (!result?.dataValues) {
+    if (!company) {
       return null;
     }
-
-    const company = result.dataValues;
 
     return {
       id: company.id,
       slug: company.slug,
       name: company.name,
       plan: company.plan,
-      features: company.features || {},
+      features: (company.features as Record<string, unknown>) || {},
     };
   } catch (error) {
     logger.error("Error obteniendo compañía desde payload:", error);

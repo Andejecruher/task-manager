@@ -33,11 +33,12 @@ interface BoardCreationAttributes extends Optional<
   | "created_by"
   | "archived_at"
   | "deleted_at"
-> { }
+> {}
 
 class Board
   extends Model<BoardAttributes, BoardCreationAttributes>
-  implements BoardAttributes {
+  implements BoardAttributes
+{
   declare id: string;
   declare company_id: string;
   declare workspace_id: string;

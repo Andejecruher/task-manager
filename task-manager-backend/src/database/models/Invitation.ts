@@ -18,11 +18,12 @@ interface InvitationAttributes {
 interface InvitationCreationAttributes extends Optional<
   InvitationAttributes,
   "id" | "created_at" | "status" | "accepted_at" | "workspace_id"
-> { }
+> {}
 
 class Invitation
   extends Model<InvitationAttributes, InvitationCreationAttributes>
-  implements InvitationAttributes {
+  implements InvitationAttributes
+{
   declare id: string;
   declare company_id: string;
   declare email: string;

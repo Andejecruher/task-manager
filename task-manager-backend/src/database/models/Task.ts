@@ -51,11 +51,12 @@ interface TaskCreationAttributes extends Optional<
   | "updated_at"
   | "updated_by"
   | "deleted_at"
-> { }
+> {}
 
 class Task
   extends Model<TaskAttributes, TaskCreationAttributes>
-  implements TaskAttributes {
+  implements TaskAttributes
+{
   declare id: string;
   declare company_id: string;
   declare workspace_id: string;
@@ -65,7 +66,13 @@ class Task
   declare description?: string;
   declare description_html?: string;
   declare column_id?: string;
-  declare status: "todo" | "in_progress" | "review" | "done" | "blocked" | "cancelled";
+  declare status:
+    | "todo"
+    | "in_progress"
+    | "review"
+    | "done"
+    | "blocked"
+    | "cancelled";
   declare priority: "low" | "medium" | "high" | "urgent";
   declare assignee_id?: string;
   declare assignee_ids?: string[];
@@ -152,7 +159,7 @@ Task.init(
         "review",
         "done",
         "blocked",
-        "cancelled"
+        "cancelled",
       ),
       defaultValue: "todo",
       allowNull: false,

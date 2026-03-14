@@ -22,11 +22,12 @@ interface UserSessionAttributes {
 interface UserSessionCreationAttributes extends Optional<
   UserSessionAttributes,
   "id" | "created_at" | "revoked_at"
-> { }
+> {}
 
 class UserSession
   extends Model<UserSessionAttributes, UserSessionCreationAttributes>
-  implements UserSessionAttributes {
+  implements UserSessionAttributes
+{
   declare id: string;
   declare company_id: string;
   declare user_id: string;

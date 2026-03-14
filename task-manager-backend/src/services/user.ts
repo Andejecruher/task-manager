@@ -310,9 +310,7 @@ export class UserService {
       }
 
       if (!targetUser.is_active) {
-        throw new ValidationError(
-          "El usuario ya está desactivado",
-        );
+        throw new ValidationError("El usuario ya está desactivado");
       }
 
       // 4. Cerrar TODAS sus sesiones activas

@@ -38,7 +38,7 @@ interface UserAttributes {
   deleted_at?: Date | null;
 }
 
-interface UserCreationAttributes extends Optional<
+type UserCreationAttributes = Optional<
   UserAttributes,
   | "id"
   | "email_verified"
@@ -49,7 +49,7 @@ interface UserCreationAttributes extends Optional<
   | "is_onboarded"
   | "timezone"
   | "locale"
-> {}
+>;
 
 class User
   extends Model<UserAttributes, UserCreationAttributes>

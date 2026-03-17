@@ -1,3 +1,4 @@
+import { workspaceController } from "@/controllers/workspace";
 import {
   authenticate,
   extractDeviceInfo,
@@ -13,36 +14,22 @@ router.get(
   authenticate,
   requireEmailVerified,
   extractDeviceInfo,
-  (_, res) => {
-    // Placeholder for fetching workspaces logic
-    res.json({ message: "List of workspaces for the authenticated user" });
-  },
+  workspaceController.getWorkspaces.bind(workspaceController),
 );
 
-// Create a new workspace
 router.post(
   "/",
   authenticate,
   requireEmailVerified,
   extractDeviceInfo,
-  (_, res) => {
+  (req, res) => {
     // Placeholder for creating a new workspace logic
-    res.json({ message: "Workspace created successfully" });
+    res.json({ message: "New workspace created successfully" });
   },
 );
 
 // Get a specific workspace by ID
-router.get(
-  "/:id",
-  authenticate,
-  requireEmailVerified,
-  extractDeviceInfo,
-  (req, res) => {
-    const { id } = req.params;
-    // Placeholder for fetching a specific workspace logic
-    res.json({ message: `Details of workspace with ID: ${id}` });
-  },
-);
+router.get("/:id", authenticate, requireEmailVerified, extractDeviceInfo);
 
 // Update a specific workspace by ID
 router.put(

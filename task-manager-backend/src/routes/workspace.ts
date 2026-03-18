@@ -1,4 +1,5 @@
 import { workspaceController } from "@/controllers/workspace";
+import { CompanyGuard } from "@/guards/company";
 import {
   authenticate,
   extractDeviceInfo,
@@ -14,6 +15,7 @@ router.get(
   authenticate,
   requireEmailVerified,
   extractDeviceInfo,
+  CompanyGuard,
   workspaceController.getWorkspaces.bind(workspaceController),
 );
 
@@ -22,10 +24,8 @@ router.post(
   authenticate,
   requireEmailVerified,
   extractDeviceInfo,
-  (req, res) => {
-    // Placeholder for creating a new workspace logic
-    res.json({ message: "New workspace created successfully" });
-  },
+  CompanyGuard,
+  workspaceController.createWorkspace.bind(workspaceController),
 );
 
 // Get a specific workspace by ID

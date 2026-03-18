@@ -1,5 +1,5 @@
-import { DataTypes, Model, Optional } from "sequelize";
 import { sequelizeConnection } from "@/database/connection-sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 
 interface WorkspaceMemberAttributes {
   id: string;
@@ -14,7 +14,7 @@ interface WorkspaceMemberAttributes {
   invited_at?: Date;
 }
 
-interface WorkspaceMemberCreationAttributes extends Optional<
+type WorkspaceMemberCreationAttributes = Optional<
   WorkspaceMemberAttributes,
   | "id"
   | "permissions"
@@ -22,7 +22,7 @@ interface WorkspaceMemberCreationAttributes extends Optional<
   | "joined_at"
   | "invited_by"
   | "invited_at"
-> {}
+>;
 
 class WorkspaceMember
   extends Model<WorkspaceMemberAttributes, WorkspaceMemberCreationAttributes>

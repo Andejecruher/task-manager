@@ -26,8 +26,7 @@ type WorkspaceMemberCreationAttributes = Optional<
 
 class WorkspaceMember
   extends Model<WorkspaceMemberAttributes, WorkspaceMemberCreationAttributes>
-  implements WorkspaceMemberAttributes
-{
+  implements WorkspaceMemberAttributes {
   declare id: string;
   declare workspace_id: string;
   declare user_id: string;
@@ -38,6 +37,7 @@ class WorkspaceMember
   declare joined_at?: Date;
   declare invited_by?: string;
   declare invited_at?: Date;
+  declare deleted_at?: Date;
 }
 
 WorkspaceMember.init(
@@ -169,5 +169,6 @@ export function setupWorkspaceMemberAssociations() {
 export {
   WorkspaceMember,
   WorkspaceMemberAttributes,
-  WorkspaceMemberCreationAttributes,
+  WorkspaceMemberCreationAttributes
 };
+

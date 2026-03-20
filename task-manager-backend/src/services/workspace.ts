@@ -422,8 +422,8 @@ class WorkspaceService {
 
       //  VALIDACIÓN DE PERMISOS - SOLO OWNER, ADMIN
 
-      const isOwner = user.role === "owner";
-      const isAdmin = user.role === "admin";
+      const isOwner = user.role === UserRole.OWNER;
+      const isAdmin = user.role === UserRole.ADMIN;
 
       // Pueden editar: OWNER o ADMIN
       if (!isOwner && !isAdmin) {
@@ -534,8 +534,8 @@ class WorkspaceService {
       }
       // VALIDACIÓN DE PERMISOS - SOLO OWNER, ADMIN
 
-      const isOwner = user.role === "owner";
-      const isAdmin = user.role === "admin";
+      const isOwner = user.role === UserRole.OWNER;
+      const isAdmin = user.role === UserRole.ADMIN;
 
       // Pueden eliminar: OWNER o ADMIN
       if (!isOwner && !isAdmin) {
@@ -617,8 +617,8 @@ class WorkspaceService {
         },
       });
 
-      const isOwner = user.role === "owner";
-      const isAdmin = user.role === "admin";
+      const isOwner = user.role === UserRole.OWNER;
+      const isAdmin = user.role === UserRole.ADMIN;
 
       // Si no es owner/admin y no es miembro, no puede ver los miembros
       if (!isOwner && !isAdmin && !isMember) {
@@ -687,12 +687,12 @@ class WorkspaceService {
         notification_settings: member.notification_settings,
         user: member.user
           ? {
-              id: member.user.id,
-              email: member.user.email,
-              full_name: member.user.full_name,
-              avatar_url: member.user.avatar_url,
-              is_active: member.user.is_active,
-            }
+            id: member.user.id,
+            email: member.user.email,
+            full_name: member.user.full_name,
+            avatar_url: member.user.avatar_url,
+            is_active: member.user.is_active,
+          }
           : undefined,
       }));
 
@@ -760,9 +760,9 @@ class WorkspaceService {
         },
       });
 
-      const isOwner = inviter?.role === "owner";
-      const isAdmin = inviter?.role === "admin";
-      const isWorkspaceAdmin = isInviterMember?.role === "admin";
+      const isOwner = inviter?.role === UserRole.OWNER;
+      const isAdmin = inviter?.role === UserRole.ADMIN;
+      const isWorkspaceAdmin = isInviterMember?.role === UserRole.ADMIN;
 
       // Solo pueden invitar: owner, admin de compañía, o admin del workspace
       if (!isOwner && !isAdmin && !isWorkspaceAdmin) {

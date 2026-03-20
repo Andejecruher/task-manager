@@ -1,14 +1,4 @@
-import { plainToClass } from "class-transformer";
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsString,
-  MaxLength,
-  MinLength,
-  type ValidationError as ClassValidatorError,
-  validate,
-} from "class-validator";
-import type { Request, Response } from "express";
+import { authService } from "@/services/auth";
 import { sessionService as Session } from "@/services/session";
 import {
   AuthError,
@@ -18,7 +8,17 @@ import {
   type ResetPasswordDTO,
 } from "@/types";
 import { logger } from "@/utils/logger";
-import { authService } from "@/services/auth";
+import { plainToClass } from "class-transformer";
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  MinLength,
+  validate,
+  type ValidationError as ClassValidatorError,
+} from "class-validator";
+import type { Request, Response } from "express";
 
 interface AuthCookieTokens {
   accessToken: string;
@@ -306,6 +306,34 @@ export class AuthController {
       return;
     } catch (error) {
       this.handleError(error, res, "logout");
+    }
+  }
+
+  /**
+   * @route POST /api/v1/auth/logout-all
+   * @desc Cerrar todas las sesiones
+   * @access Private
+   */
+  async logoutAll(req: Request, res: Response) {
+    try {
+
+      const authReq = req as AuthRequest;
+
+      const revokedCount = await authService.logoutAll(
+        authReq.user.id,
+        authReq.company.id
+      );
+
+      // Limpiar cookies
+      this.clearAuthCookies(res);
+
+      res.apiSuccess(
+        { revokedCount },
+        `Se cerraron ${revokedCount} sesiones`
+      );
+
+    } catch (error) {
+      this.handleError(error, res, 'logoutAll');
     }
   }
 

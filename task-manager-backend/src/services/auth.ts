@@ -514,6 +514,20 @@ export class AuthService {
   }
 
   /**
+   * Logout de todas las sesiones
+   */
+  async logoutAll(userId: string, companyId: string): Promise<number> {
+    try {
+      const revokedCount = await sessionService.revokeAllSessions(userId, companyId);
+      logger.info('Logout global exitoso', { userId, revokedCount });
+      return revokedCount;
+    } catch (error) {
+      logger.error('Error en logout global:', error);
+      throw new AuthError('Error en logout global', 'LOGOUT_ALL_ERROR', 500);
+    }
+  }
+
+  /**
    * Obtener sesiones activas
    */
   async getSessions(

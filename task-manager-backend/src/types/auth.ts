@@ -8,7 +8,7 @@ export interface JwtPayload {
   userId: string;
   companyId: string;
   sessionId: string;
-  role: string;
+  role: UserRole;
   email: string;
   iat?: number;
   exp?: number;
@@ -28,7 +28,7 @@ export interface AuthUser {
   id: string;
   email: string;
   companyId: string;
-  role: string;
+  role: UserRole;
   fullName?: string;
   permissions: string[];
   sessionId: string;
@@ -63,7 +63,7 @@ export interface LoginResponse {
     id: string;
     email: string;
     fullName?: string;
-    role: string;
+    role: UserRole;
     companyId: string;
     emailVerified: boolean;
     avatarUrl?: string;

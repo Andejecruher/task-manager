@@ -203,6 +203,15 @@ export function setupCompanyAssociations() {
     onDelete: "CASCADE",
     onUpdate: "CASCADE",
   });
+
+  // Company tiene muchos Users
+  const { User } = require("./User");
+  Company.hasMany(User, {
+    foreignKey: "company_id",
+    as: "users",
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
+  });
 }
 
 export { Company, CompanyAttributes, CompanyCreationAttributes };

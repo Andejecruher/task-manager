@@ -1,4 +1,5 @@
 import { sequelizeConnection } from "@/database/connection-sequelize";
+import { UserRole } from "@/types";
 import {
   BelongsToManyGetAssociationsMixin,
   DataTypes,
@@ -53,8 +54,7 @@ type UserCreationAttributes = Optional<
 
 class User
   extends Model<UserAttributes, UserCreationAttributes>
-  implements UserAttributes
-{
+  implements UserAttributes {
   declare id: string;
   declare company_id: string;
   declare email: string;
@@ -70,7 +70,7 @@ class User
   declare last_login_at?: Date;
   declare failed_login_attempts: number;
   declare locked_until?: Date;
-  declare role: string;
+  declare role: UserRole;
   declare permissions: string[];
   declare is_active: boolean;
   declare is_onboarded: boolean;

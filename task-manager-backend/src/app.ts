@@ -1,21 +1,25 @@
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express from "express";
 import type { Request, Response } from "express";
+import express from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import morgan from "morgan";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 
+import {
+  getTokenManagerScript,
+  swaggerCustomization,
+} from "@/config/swagger-token-manager";
 import { apiResponse } from "@/middlewares/api-response";
 import { errorHandler } from "@/middlewares/error";
 import { requestId } from "@/middlewares/request-id";
 import router from "@/routes";
 import { logger } from "@/utils/logger";
 
-// Configuración de Swagger
+// Configuración de Swagger con Token Manager
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
@@ -36,16 +40,35 @@ const swaggerOptions = {
           type: "http",
           scheme: "bearer",
           bearerFormat: "JWT",
+          description:
+            "Token obtenido del login o register. Se captura automáticamente y se guarda en localStorage.",
         },
       },
     },
   },
-  apis: ["./src/routes/*.ts", "./src/controllers/*.ts"],
+  apis: ["./src/docs/routes/*.swagger.ts"],
 };
 
 const swaggerSpec = swaggerJsdoc(
   swaggerOptions as Parameters<typeof swaggerJsdoc>[0],
 );
+
+// ===================================
+// Swagger UI Customization
+// ===================================
+
+const tokenManagerScript = getTokenManagerScript();
+const swaggerUiOptions = {
+  swaggerOptions: {
+    // Auto-load token si existe
+    persistAuthorization: true,
+    defaultModelsExpandDepth: 1,
+  },
+  customCss: swaggerCustomization.css,
+  customSiteTitle: swaggerCustomization.siteTitle,
+  // Inyectar script de token manager
+  customJs: tokenManagerScript,
+};
 
 // Crear aplicación Express
 export const app = express();
@@ -130,8 +153,12 @@ app.get("/health", (_: Request, res: Response) => {
 // // API Routes
 app.use("/api/v1", router);
 
-// Swagger documentation
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Swagger documentation with Token Manager
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, swaggerUiOptions),
+);
 
 // 404 handler
 app.use("*", (_, res: Response) => {

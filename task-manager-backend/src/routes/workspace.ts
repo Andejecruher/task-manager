@@ -29,7 +29,14 @@ router.post(
 );
 
 // Get a specific workspace by ID
-router.get("/:id", authenticate, requireEmailVerified, extractDeviceInfo);
+router.get(
+  "/:id",
+  authenticate,
+  requireEmailVerified,
+  extractDeviceInfo,
+  CompanyGuard,
+  workspaceController.getWorkspaceById.bind(workspaceController),
+);
 
 // Update a specific workspace by ID
 router.put(
@@ -37,11 +44,8 @@ router.put(
   authenticate,
   requireEmailVerified,
   extractDeviceInfo,
-  (req, res) => {
-    const { id } = req.params;
-    // Placeholder for updating a specific workspace logic
-    res.json({ message: `Workspace with ID: ${id} updated successfully` });
-  },
+  CompanyGuard,
+  workspaceController.updateWorkspaceById.bind(workspaceController),
 );
 
 // Delete a specific workspace by ID
@@ -50,11 +54,8 @@ router.delete(
   authenticate,
   requireEmailVerified,
   extractDeviceInfo,
-  (req, res) => {
-    const { id } = req.params;
-    // Placeholder for deleting a specific workspace logic
-    res.json({ message: `Workspace with ID: ${id} deleted successfully` });
-  },
+  CompanyGuard,
+  workspaceController.deleteWorkspaceById.bind(workspaceController),
 );
 
 // Get all members for the workspace
@@ -63,11 +64,8 @@ router.get(
   authenticate,
   requireEmailVerified,
   extractDeviceInfo,
-  (req, res) => {
-    const { id } = req.params;
-    // Placeholder for fetching workspace members logic
-    res.json({ message: `List of workspace members for workspace ID: ${id}` });
-  },
+  CompanyGuard,
+  workspaceController.getWorkspaceMembers.bind(workspaceController),
 );
 
 // Add a member to the workspace
@@ -76,13 +74,8 @@ router.post(
   authenticate,
   requireEmailVerified,
   extractDeviceInfo,
-  (req, res) => {
-    const { id } = req.params;
-    // Placeholder for adding a member to the workspace logic
-    res.json({
-      message: `Member added to workspace with ID: ${id} successfully`,
-    });
-  },
+  CompanyGuard,
+  workspaceController.addWorkspaceMember.bind(workspaceController),
 );
 
 // Remove a member from the workspace

@@ -3,7 +3,7 @@ import { Company } from "@/database/models/Company";
 import { User } from "@/database/models/User";
 import { Workspace } from "@/database/models/Workspace";
 import { WorkspaceMember } from "@/database/models/WorkspaceMember";
-import { AuthError, ValidationError } from "@/types";
+import { AuthError, UserRole, ValidationError } from "@/types";
 import { logger } from "@/utils/logger";
 import { v4 as uuidv4 } from "uuid";
 
@@ -158,7 +158,7 @@ class WorkspaceService {
 
       // Verificar que el usuario tiene rol OWNER o ADMIN en la compañía
 
-      if (user.role !== "owner" && user.role !== "admin") {
+      if (user.role !== UserRole.OWNER && user.role !== UserRole.ADMIN) {
         throw new AuthError(
           "No tienes permisos para crear workspaces. Solo owners y admins pueden hacer esto",
           "FORBIDDEN",

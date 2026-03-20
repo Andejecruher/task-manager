@@ -3,7 +3,7 @@ import { User, UserSession } from "@/database/models";
 import { Company } from "@/database/models/Company";
 import { emailService } from "@/services/email";
 import { passwordService } from "@/services/password";
-import { AuthError, NotFoundError, ValidationError } from "@/types";
+import { AuthError, NotFoundError, UserRole, ValidationError } from "@/types";
 import { logger } from "@/utils/logger";
 import { Op } from "sequelize"; // <-- IMPORTANTE: Agregar esta importación
 
@@ -38,7 +38,7 @@ export class UserService {
         password_hash: passwordHash,
         full_name: data.fullName, // Mantenemos fullName como en tu DTO
         company_id: companyId,
-        role: data.role || "member", // Cambiado de "user" a "member" para coincidir con tus roles
+        role: (data.role as UserRole) || UserRole.MEMBER,
         email_verified: false,
       });
 
@@ -100,7 +100,7 @@ export class UserService {
       // 3. Solo owner puede eliminar admins
       const requestingUser = await User.findByPk(requestingUserId);
 
-      if (targetUser.role === "admin" && requestingUser?.role !== "owner") {
+      if (targetUser.role === UserRole.ADMIN && requestingUser?.role !== UserRole.OWNER) {
         throw new AuthError(
           "Solo el owner puede eliminar administradores",
           "FORBIDDEN",
@@ -137,7 +137,7 @@ export class UserService {
   // ====================
   async updateUserRoleById(
     targetUserId: string,
-    newRole: string, // Nuevo rol
+    newRole: UserRole, // Nuevo rol
     companyId: string, // ID de la compañía (del token)
     requestingUserId: string,
   ): Promise<any> {
@@ -157,7 +157,7 @@ export class UserService {
       }
 
       // 3. Solo owner puede cambiar roles
-      if (requestingUser.role !== "owner") {
+      if (requestingUser.role !== UserRole.OWNER) {
         throw new AuthError(
           "No tienes permisos para modificar roles. Solo el owner puede hacer esto",
           "FORBIDDEN",
@@ -182,7 +182,7 @@ export class UserService {
       }
 
       // 5. No permitir cambiar el rol de otro owner
-      if (targetUser.role === "owner" && requestingUser.id !== targetUser.id) {
+      if (targetUser.role === UserRole.OWNER && requestingUser.id !== targetUser.id) {
         throw new AuthError(
           "No puedes cambiar el rol de otro owner",
           "FORBIDDEN",
@@ -191,11 +191,11 @@ export class UserService {
       }
 
       // 6. Si va a convertir a alguien en owner, verificar que no exista otro owner
-      if (newRole === "owner" && targetUser.role !== "owner") {
+      if (newRole === UserRole.OWNER && targetUser.role !== UserRole.OWNER) {
         const existingOwner = await User.findOne({
           where: {
             company_id: companyId,
-            role: "owner",
+            role: UserRole.OWNER,
             deleted_at: null,
           },
         });
@@ -210,11 +210,11 @@ export class UserService {
       }
 
       // 7. Si el target es owner y se está cambiando a otro rol, asegurar que queda al menos un admin
-      if (targetUser.role === "owner" && newRole !== "owner") {
+      if (targetUser.role === UserRole.OWNER && newRole !== UserRole.OWNER) {
         const adminCount = await User.count({
           where: {
             company_id: companyId,
-            role: "admin",
+            role: UserRole.ADMIN,
             deleted_at: null,
             id: { [Op.ne]: targetUserId }, // [Op.ne] significa "no igual"
           },
@@ -272,7 +272,7 @@ export class UserService {
       // 1. Verificar que quien ejecuta es OWNER
       const requestingUser = await User.findByPk(requestingUserId);
 
-      if (requestingUser?.role !== "owner") {
+      if (requestingUser?.role !== UserRole.OWNER) {
         throw new AuthError(
           "Solo el owner puede desactivar usuarios",
           "FORBIDDEN",
@@ -301,7 +301,7 @@ export class UserService {
         );
       }
 
-      if (targetUser.role === "owner") {
+      if (targetUser.role === UserRole.OWNER) {
         throw new AuthError(
           "No puedes desactivar a otro owner",
           "FORBIDDEN",

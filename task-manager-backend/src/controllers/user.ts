@@ -1,5 +1,5 @@
 import { userService } from "@/services/user";
-import type { AuthRequest } from "@/types";
+import type { AuthRequest, UserRole } from "@/types";
 import { AuthError } from "@/types";
 import { logger } from "@/utils/logger";
 import { plainToClass } from "class-transformer";
@@ -101,7 +101,7 @@ export class UserController {
 
       const result: unknown = await userService.updateUserRoleById(
         id,
-        dto.role,
+        dto.role as unknown as UserRole,
         authReq.company.id,
         authReq.user.id,
       );

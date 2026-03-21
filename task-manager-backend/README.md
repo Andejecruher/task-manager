@@ -1,51 +1,31 @@
 # Task Manager Backend
 
-Backend completo para sistema de gestion de tareas estilo Notion con multi-tenancy.
+Backend para sistema de gestion de tareas multi-tenant.
 
-## Inicio rapido
+## Docker en monorepo (oficial)
 
-### Prerrequisitos
+El flujo Docker oficial esta centralizado en la raiz del monorepo.
 
-- Docker y Docker Compose
-- Node.js 18+
-- npm 8+
-
-### 1. Clonar y configurar
+Desde `task-manager/`:
 
 ```bash
-git clone <repo-url>
-cd task-manager-backend
-cp .env.example .env
+docker compose up --build
 ```
 
-### 2. Levantar entorno de desarrollo
+Documentacion oficial Docker:
+
+- `docs/docker/fullstack-quickstart.md`
+- `docs/docker/architecture.md`
+- `docs/docker/env-vars.md`
+
+## Compose local backend (legacy)
+
+El archivo `task-manager-backend/docker-compose.yml` se mantiene como opcion legacy para casos donde solo quieras el backend.
+No es el entrypoint oficial del monorepo.
+
+## Desarrollo local sin Docker
 
 ```bash
-docker compose up -d --build
-```
-
-Nota: por defecto `DB_SYNC_MODE=false` para evitar bloqueos en arranque. Usa migraciones para cambios de esquema.
-
-Servicios disponibles:
-
-- API: `http://localhost:3000`
-- PostgreSQL: `localhost:5432`
-- Redis: `localhost:6379`
-- Adminer (DB UI): `http://localhost:8080`
-- Redis Commander: `http://localhost:8081`
-
-### 3. Acceder a PostgreSQL desde Adminer
-
-Usa estos datos en `http://localhost:8080`:
-
-- Sistema: `PostgreSQL`
-- Servidor: `postgres`
-- Usuario: `taskmanager_user`
-- Contrasena: `dev_password_123`
-- Base de datos: `taskmanager_dev`
-
-### 4. Apagar servicios
-
-```bash
-docker compose down
+npm install
+npm run dev
 ```

@@ -12,7 +12,6 @@ import { useState } from "react"
 
 export default function RegisterPage() {
     const { register } = useAuth()
-    const [company, setCompany] = useState("")
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -27,7 +26,6 @@ export default function RegisterPage() {
             setError("Password must be at least 6 characters")
             return
         }
-        console.log("Registering user:", { company, name, email, password })
 
         setLoading(true)
         try {
@@ -40,7 +38,7 @@ export default function RegisterPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-background to-blue-50 dark:from-blue-950/20 dark:via-background dark:to-blue-950/20 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-blue-50 dark:from-blue-950/20 dark:via-background dark:to-blue-950/20 p-4">
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center space-y-3">
                     <div className="flex justify-center">
@@ -55,24 +53,13 @@ export default function RegisterPage() {
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="company">Full company</Label>
-                            <Input
-                                id="company"
-                                type="text"
-                                placeholder="Acme Corp"
-                                value={company}
-                                onChange={(e: { target: { value: React.SetStateAction<string> } }) => setCompany(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
                             <Label htmlFor="name">Full name</Label>
                             <Input
                                 id="name"
                                 type="text"
                                 placeholder="John Doe"
                                 value={name}
-                                onChange={(e: { target: { value: React.SetStateAction<string> } }) => setName(e.target.value)}
+                                onChange={(e) => setName(e.target.value)}
                                 required
                             />
                         </div>
@@ -83,7 +70,7 @@ export default function RegisterPage() {
                                 type="email"
                                 placeholder="you@company.com"
                                 value={email}
-                                onChange={(e: { target: { value: React.SetStateAction<string> } }) => setEmail(e.target.value)}
+                                onChange={(e) => setEmail(e.target.value)}
                                 required
                             />
                         </div>
@@ -94,7 +81,7 @@ export default function RegisterPage() {
                                 type="password"
                                 placeholder="Minimum 6 characters"
                                 value={password}
-                                onChange={(e: { target: { value: React.SetStateAction<string> } }) => setPassword(e.target.value)}
+                                onChange={(e) => setPassword(e.target.value)}
                                 required
                             />
                         </div>

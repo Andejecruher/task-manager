@@ -1,0 +1,167 @@
+services:
+  postgres:
+    build:
+      context: ./task-manager-backend/docker/postgres
+      dockerfile: Dockerfile
+    container_name: taskmanager_postgres_dev
+    environment:
+      POSTGRES_DB: taskmanager_dev
+      POSTGRES_USER: taskmanager_user
+      POSTGRES_PASSWORD: dev_password_123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      TZ: "America/Mexico_City"
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./task-manager-backend/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./task-manager-backend/docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./task-manager-backend/src/database/migrations:/docker-entrypoint-initdb.d/migrations
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c shared_preload_libraries='pg_stat_statements,pgcrypto'
+      -c log_statement=all
+      -c log_duration=on
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskmanager_user -d taskmanager_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - taskmanager-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: taskmanager_redis_dev
+    ports:
+      - "6380:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass redis_dev_password
+    volumes:
+      - redis_data_dev:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_dev_password", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - taskmanager-network
+
+  adminer:
+    image: adminer:latest
+    container_name: taskmanager_adminer_dev
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - taskmanager-network
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: taskmanager_redis_commander_dev
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_dev_password
+    ports:
+      - "8083:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - taskmanager-network
+
+  app:
+    build:
+      context: ./task-manager-backend
+      dockerfile: docker/app/Dockerfile.dev
+    container_name: taskmanager_app_dev
+    ports:
+      - "8000:3000"
+      - "9230:9229"
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskmanager_dev
+      DB_USER: taskmanager_user
+      DB_PASSWORD: dev_password_123
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_dev_password
+      JWT_SECRET: dev_jwt_secret_key_change_in_production
+      APP_PORT: 3000
+      LOG_LEVEL: debug
+      LOG_TO_FILE: "true"
+    volumes:
+      - ./task-manager-backend:/app
+      - /app/node_modules
+      - /app/dist
+      - app_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        npm install &&
+        npm run dev
+      "
+    restart: unless-stopped
+    networks:
+      - taskmanager-network
+
+  frontend:
+    build:
+      context: ./task-manager-frontend
+      dockerfile: Dockerfile.dev
+    container_name: taskmanager_frontend_dev
+    ports:
+      - "5173:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+      API_INTERNAL_URL: http://app:3000/api/v1
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./task-manager-frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      app:
+        condition: service_started
+    command: >
+      sh -c "
+        npm install &&
+        npm run dev -- --hostname 0.0.0.0 --port 3000
+      "
+    restart: unless-stopped
+    networks:
+      - taskmanager-network
+
+networks:
+  taskmanager-network:
+    driver: bridge
+    name: taskmanager-network-dev
+
+volumes:
+  postgres_data_dev:
+    name: taskmanager_postgres_data_dev
+  redis_data_dev:
+    name: taskmanager_redis_data_dev
+  app_logs:
+    name: taskmanager_app_logs_dev

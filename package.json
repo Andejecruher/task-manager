@@ -10,7 +10,12 @@
     "install": "npm install",
     "start:backend": "cd task-manager-backend && npm run start",
     "start:frontend": "cd task-manager-frontend && npm run dev",
-    "dev": "concurrently \"npm: start:backend\" \"npm: start:frontend\""
+    "dev": "concurrently \"npm: start:backend\" \"npm: start:frontend\"",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:ps": "docker-compose ps"
   },
   "devDependencies": {
     "concurrently": "^8.2.0"

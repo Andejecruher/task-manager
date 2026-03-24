@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/context/auth-context"
+import { loginSchema } from "@/lib/schemas"
 import { CheckSquare } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
@@ -12,33 +13,52 @@ import { useState } from "react"
 
 export default function RegisterPage() {
     const { register } = useAuth()
-    const [name, setName] = useState("")
+    const [fullName, setFullName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
-    const [error, setError] = useState("")
+    const [companyName, setCompanyName] = useState("")
+    const [error, setError] = useState<Record<string, string[] | undefined>>({})
     const [loading, setLoading] = useState(false)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setError("")
+        setError({}) // Clear previous errors
 
-        if (password.length < 6) {
-            setError("Password must be at least 6 characters")
-            return
+        const { success, data, error } = loginSchema.safeParse({ fullName, email, password, companyName, companySlug: companyName })
+
+
+        if (!success) {
+            const { fieldErrors } = error.flatten();
+            setError(fieldErrors)
+            return;
         }
 
         setLoading(true)
         try {
-            await register(name, email, password)
+            const result = await register(data)
+            if (result) {
+                console.log("🚀 -------------------------------------🚀");
+                console.log("🚀 ~ :32 ~ handleSubmit ~ Registration successful");
+                console.log("🚀 -------------------------------------🚀");
+                // TODO: Redirect to login or dashboard after successful registration
+            } else {
+                console.log("🚀 -------------------------------------🚀");
+                console.log("🚀 ~ :35 ~ handleSubmit ~ Registration failed");
+                console.log("🚀 -------------------------------------🚀");
+                // TODO: Show error message to user
+            }
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Registration failed. Please try again.")
+            console.log("🚀 -----------------------------------🚀");
+            console.log("🚀 ~ :39 ~ handleSubmit ~ err:", err);
+            console.log("🚀 -----------------------------------🚀");
+
         } finally {
             setLoading(false)
         }
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-blue-50 dark:from-blue-950/20 dark:via-background dark:to-blue-950/20 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-background to-blue-50 dark:from-blue-950/20 dark:via-background dark:to-blue-950/20 p-4">
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center space-y-3">
                     <div className="flex justify-center">
@@ -53,26 +73,29 @@ export default function RegisterPage() {
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="name">Full name</Label>
+                            <Label htmlFor="fullName">Full name</Label>
                             <Input
-                                id="name"
+                                id="fullName"
                                 type="text"
                                 placeholder="John Doe"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                minLength={5}
                                 required
                             />
+                            {'fullName' in error && error.fullName && <p className="text-red-500 text-sm">{error.fullName?.join(", ")}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input
                                 id="email"
-                                type="email"
+                                type="string"
                                 placeholder="you@company.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                             />
+                            {'email' in error && error.email && <p className="text-red-500 text-sm">{error.email?.join(", ")}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password">Password</Label>
@@ -82,14 +105,24 @@ export default function RegisterPage() {
                                 placeholder="Minimum 6 characters"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                minLength={6}
                                 required
                             />
+                            {'password' in error && error.password && <p className="text-red-500 text-sm">{error.password?.join(", ")}</p>}
                         </div>
-                        {error && (
-                            <div className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
-                                {error}
-                            </div>
-                        )}
+                        <div className="space-y-2">
+                            <Label htmlFor="companyName">Company Name</Label>
+                            <Input
+                                id="companyName"
+                                type="text"
+                                placeholder="Enter your company name"
+                                value={companyName}
+                                onChange={(e) => setCompanyName(e.target.value)}
+                                minLength={1}
+                                required
+                            />
+                            {'companyName' in error && error.companyName && <p className="text-red-500 text-sm">{error.companyName?.join(", ")}</p>}
+                        </div>
                         <Button type="submit" className="w-full" disabled={loading}>
                             {loading ? "Creating account..." : "Create account"}
                         </Button>

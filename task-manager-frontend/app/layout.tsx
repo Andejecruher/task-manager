@@ -1,5 +1,5 @@
 import { Toaster } from "@/components/ui/toaster"
-import { AuthProvider } from "@/lib/auth-context"
+import { AuthProvider } from "@/context/auth-context"
 import { ReactQueryProvider } from "@/lib/query-provider"
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata } from "next"

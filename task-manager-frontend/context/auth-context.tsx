@@ -1,13 +1,13 @@
 "use client"
 
-import type { CompanyContext, Task, Workspace } from "@/lib/types"
-import { registerServices } from "@/services/auth/register"
-import { AuthUser, RegisterDTO, UserRole } from "@/types"
+import { getMeServices, registerServices } from "@/services/auth"
+import { AuthUser, Company, RegisterDTO } from "@/types"
 import { useRouter } from "next/navigation"
 import {
     createContext,
     useCallback,
     useContext,
+    useEffect,
     useState,
     type ReactNode
 } from "react"
@@ -15,24 +15,12 @@ import {
 
 interface AuthContextType {
     user: AuthUser | null
-    users: AuthUser[]
-    tasks: Task[]
-    workspaces: Workspace[]
-    company: CompanyContext
+    company: Company
     loading: boolean
     sessionBanner: boolean
     login: (email: string, password: string, companySlug?: string) => Promise<void>
     logout: () => void
     register: (data: RegisterDTO) => Promise<boolean>
-    updateUser: (updates: Partial<AuthUser>) => void
-    // Task operations
-    addTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt">) => void
-    updateTask: (id: string, updates: Partial<Task>) => void
-    deleteTask: (id: string) => void
-    // User management
-    addUser: (data: { name: string; email: string; role: UserRole; companyId: string }) => void
-    updateUserRole: (userId: string, role: UserRole) => void
-    deleteUser: (userId: string) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -42,18 +30,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter()
     const [user, setUser] = useState<AuthUser | null>(null)
-    const [users, setUsers] = useState<AuthUser[]>([])
-    const [tasks, setTasks] = useState<Task[]>([])
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(false)
     const [sessionBanner, setSessionBanner] = useState(false)
 
     // ── Auth ────────────────────────────────────────────────────────────────
-
     const login = useCallback(
         async (email: string, _password: string, _companySlug?: string) => {
             // Todo: Implement company slug logic
         },
-        [users, router],
+        [router],
     )
 
     const logout = useCallback(() => {
@@ -71,72 +56,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 password: password,
             }
 
-            const result = await registerServices(newUser)
-
-            // TODO: Implement registration logic (e.g., create user, assign to company)
-            return result;
+            try {
+                const result = await registerServices(newUser)
+                if (result.success) {
+                    const { user, company, tokens } = result.data
+                    setUser({ user, company, tokens })
+                    localStorage.setItem("authTokens", JSON.stringify(tokens))
+                    setTimeout(() => {
+                        router.replace("/workspaces")
+                    }, 1500) // Redirect after 1.5 seconds to show success message
+                    return true;
+                } else {
+                    // Handle registration error (e.g., show error message)
+                    console.error("Registration failed:", result.error);
+                    return false;
+                }
+            } catch (error) {
+                throw error;
+            }
         },
-        [users, router],
+        [router],
     )
 
-    const updateUser = useCallback(
-        (updates: Partial<AuthUser>) => {
-            // TODO: Implement user update logic (e.g., update name, email)
-        },
-        [user?.id],
-    )
+    const getMe = useCallback(async () => {
+        try {
+            const result = await getMeServices();
+            if (result.success) {
+                const { user, company } = result.data
+                setUser({ user, company, tokens: JSON.parse(localStorage.getItem("authTokens") || "null") })
+            } else {
+                console.error("Failed to fetch user profile:", result.error);
+            }
+        } catch (error) {
+            console.error("Error fetching user profile:", error);
+        }
 
-    // ── Task operations ────────────────────────────────────────────────────
+    }, [user, router])
 
-    const addTask = useCallback((data: Omit<Task, "id" | "createdAt" | "updatedAt">) => {
-        // TODO: Implement add task logic (e.g., create task with generated ID and timestamps)
-    }, [])
-
-    const updateTask = useCallback((id: string, updates: Partial<Task>) => {
-        // TODO: Implement update task logic (e.g., find task by ID and apply updates)
-    }, [])
-
-    const deleteTask = useCallback((id: string) => {
-        // TODO: Implement delete task logic (e.g., remove task by ID)
-    }, [])
-
-    // ── User management ────────────────────────────────────────────────────
-
-    const addUser = useCallback(
-        (data: { name: string; email: string; role: UserRole; companyId: string }) => {
-            // TODO: Implement add user logic (e.g., create user and assign to company)
-        },
-        [],
-    )
-
-    const updateUserRole = useCallback((userId: string, role: UserRole) => {
-
-    }, [])
-
-    const deleteUser = useCallback((userId: string) => {
-
+    useEffect(() => {
+        const tokens = localStorage.getItem("authTokens")
+        if (tokens) {
+            getMe()
+        } else {
+            setLoading(false)
+        }
     }, [])
 
     return (
         <AuthContext.Provider
             value={{
                 user,
-                users,
-                tasks,
-                workspaces: [],
-                company: {} as CompanyContext,
+                company: {} as Company,
                 loading,
                 sessionBanner,
                 login,
                 logout,
                 register,
-                updateUser,
-                addTask,
-                updateTask,
-                deleteTask,
-                addUser,
-                updateUserRole,
-                deleteUser,
             }}
         >
             {children}

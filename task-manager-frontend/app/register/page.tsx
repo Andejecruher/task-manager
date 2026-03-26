@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/context/auth-context"
 import { loginSchema } from "@/lib/schemas"
+import { ApiErrorResponse } from "@/types"
 import { CheckSquare } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
 import { useState } from "react"
+import { toast } from 'sonner'
 
 export default function RegisterPage() {
     const { register } = useAuth()
@@ -37,21 +39,15 @@ export default function RegisterPage() {
         try {
             const result = await register(data)
             if (result) {
-                console.log("🚀 -------------------------------------🚀");
-                console.log("🚀 ~ :32 ~ handleSubmit ~ Registration successful");
-                console.log("🚀 -------------------------------------🚀");
+                toast.success("Account created successfully! Please log in.")
                 // TODO: Redirect to login or dashboard after successful registration
-            } else {
-                console.log("🚀 -------------------------------------🚀");
-                console.log("🚀 ~ :35 ~ handleSubmit ~ Registration failed");
-                console.log("🚀 -------------------------------------🚀");
-                // TODO: Show error message to user
             }
-        } catch (err: unknown) {
-            console.log("🚀 -----------------------------------🚀");
-            console.log("🚀 ~ :39 ~ handleSubmit ~ err:", err);
-            console.log("🚀 -----------------------------------🚀");
-
+        } catch (err: ApiErrorResponse | any) {
+            if (err.error) {
+                toast.error(err?.message || err.error)
+            } else {
+                toast.error("An unexpected error occurred. Please try again.")
+            }
         } finally {
             setLoading(false)
         }

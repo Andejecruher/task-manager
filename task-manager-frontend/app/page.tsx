@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/context/auth-context"
 import {
   ArrowRight,
   BarChart3,
@@ -16,7 +16,6 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
 
 const features = [
   {
@@ -68,11 +67,11 @@ export default function RootPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
 
-  useEffect(() => {
-    if (!loading && user) {
-      router.replace("/workspaces")
-    }
-  }, [loading, user, router])
+  // useEffect(() => {
+  //   if (!loading && user) {
+  //     router.replace("/workspaces")
+  //   }
+  // }, [loading, user, router])
 
   if (loading) {
     return (
@@ -82,13 +81,13 @@ export default function RootPage() {
     )
   }
 
-  if (user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Spinner className="h-8 w-8 text-primary" />
-      </div>
-    )
-  }
+  // if (user) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-background">
+  //       <Spinner className="h-8 w-8 text-primary" />
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans">
@@ -102,9 +101,15 @@ export default function RootPage() {
             <span className="text-lg font-semibold tracking-tight text-foreground">TaskFlow</span>
           </div>
           <nav className="flex items-center gap-3">
-            <Button size="sm" asChild>
-              <Link href="/register">Get started free</Link>
-            </Button>
+            {user ? (
+              <Button size="sm" asChild>
+                <Link href="/workspaces">Go to Workspaces</Link>
+              </Button>
+            ) : (
+              <Button size="sm" asChild>
+                <Link href="/register">Get started free</Link>
+              </Button>
+            )}
           </nav>
         </div>
       </header>

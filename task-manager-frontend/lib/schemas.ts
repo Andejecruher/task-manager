@@ -29,7 +29,7 @@ const companySlugSchema = z
 export const loginSchema = z.object({
     fullName: z.string().min(5, "Nombre es requerido").max(100, "Nombre demasiado largo"),
     email: z.string().min(1, "Email es requerido").email("Ingrese un email válido"),
-    password: z.string().min(1, "Contraseña es requerida").max(10, "Contraseña demasiado larga"),
+    password: z.string().min(8, "Contraseña es requerida").max(10, "Contraseña demasiado larga"),
     companyName: z.string().min(1, "Nombre de la empresa es requerido").max(100, "Nombre de la empresa demasiado largo"),
     companySlug: companySlugSchema,
 })

@@ -1,86 +1,49 @@
 
+
+interface User {
+    id: string;
+    email: string;
+    fullName?: string;
+    role: UserRole;
+    companyId: string;
+    emailVerified: boolean;
+    avatarUrl?: string;
+};
+
+export interface Company {
+    id: string;
+    name: string;
+    slug: string;
+    plan: string;
+}
+
 // ====================
 // PAYLOADS DE TOKENS
 // ====================
 
-export interface JwtPayload {
-    userId: string;
-    companyId: string;
-    sessionId: string;
-    role: UserRole;
-    email: string;
-    iat?: number;
-    exp?: number;
-}
-
-export interface RefreshTokenPayload {
-    sessionId: string;
-    userId: string;
-    companyId: string;
-}
+interface Tokens {
+    verificationToken?: string; // Solo para registro, no se devuelve en login
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+    refreshExpiresIn: number;
+};
 
 // ====================
 // DATOS DE USUARIO AUTENTICADO
 // ====================
 
 export interface AuthUser {
-    id: string;
-    email: string;
-    companyId: string;
-    role: UserRole;
-    fullName?: string;
-    permissions: string[];
-    sessionId: string;
-    isActive: boolean;
-    emailVerified: boolean;
+    user: User;
+    company: Company;
+    tokens: Tokens;
 }
 
-export interface CompanyContext {
-    id: string;
-    slug: string;
-    name: string;
-    plan: string;
-    features: Record<string, unknown>;
-}
 
-// ====================
-// REQUEST EXTENDIDA
-// ====================
-
-export interface AuthRequest extends Request {
-    user: AuthUser;
-    company: CompanyContext;
-    sessionId: string;
-}
 
 // ====================
 // RESPONSES Y DTOs
 // ====================
-
-export interface LoginResponse {
-    user: {
-        id: string;
-        email: string;
-        fullName?: string;
-        role: UserRole;
-        companyId: string;
-        emailVerified: boolean;
-        avatarUrl?: string;
-    };
-    tokens: {
-        verificationToken?: string; // Solo para registro, no se devuelve en login
-        accessToken: string;
-        refreshToken: string;
-        expiresIn: number;
-        refreshExpiresIn: number;
-    };
-    company: {
-        id: string;
-        name: string;
-        slug: string;
-        plan: string;
-    };
-}
 
 export interface RegisterDTO {
     email: string;

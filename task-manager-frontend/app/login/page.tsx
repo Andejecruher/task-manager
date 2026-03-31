@@ -69,6 +69,7 @@ export default function LoginPage() {
     : true;
 
   const onSubmit = async (values: LoginInput) => {
+    console.log("Submitting login form with values:", values);
     try {
       await login(values.email, values.password, values.companySlug);
       // Redirección manual después del login exitoso
@@ -105,7 +106,15 @@ export default function LoginPage() {
 
         <CardContent>
           <form
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const user = {
+                email: (e.target as any).email.value,
+                password: (e.target as any).password.value,
+                companySlug: (e.target as any).companySlug?.value,
+              };
+              onSubmit(user);
+            }}
             className="space-y-4"
             noValidate
           >
@@ -152,6 +161,25 @@ export default function LoginPage() {
               {errors.password && (
                 <p className="text-xs text-destructive">
                   {errors.password.message}
+                </p>
+              )}
+            </div>
+
+            {/* Company Slug */}
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="companySlug"
+                  type={"text"}
+                  autoComplete="current-password"
+                  {...register("companySlug")}
+                  className="pr-10"
+                />
+              </div>
+              {errors.companySlug && (
+                <p className="text-xs text-destructive">
+                  {errors.companySlug.message}
                 </p>
               )}
             </div>

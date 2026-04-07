@@ -2,12 +2,11 @@
 
 import {
   getMeServices,
-  registerServices,
   loginServices,
+  registerServices,
 } from "@/services/auth";
-import { AuthUser, Company, RegisterDTO, LoginDTO } from "@/types";
+import { AuthUser, Company, LoginDTO, RegisterDTO } from "@/types";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import {
   createContext,
   useCallback,
@@ -16,6 +15,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { toast } from "sonner";
 // ── Context type ─────────────────────────────────────────────────────────────
 
 interface AuthContextType {
@@ -62,7 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             description: `Welcome back, ${user.fullName || user.email}!`,
           });
 
-          router.push("/workspaces");
+          setTimeout(() => {
+            router.replace(`/${company.slug}/workspaces`);
+          }, 1500); // Redirect after 1.5 seconds to show success message
+
         } else {
           throw new Error(result.error || "Login failed");
         }
@@ -112,12 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser({ user, company, tokens });
           localStorage.setItem("authTokens", JSON.stringify(tokens));
           setTimeout(() => {
-            router.replace("/workspaces");
+            router.replace(`/${company.slug}/workspaces`);
           }, 1500); // Redirect after 1.5 seconds to show success message
           return true;
         } else {
           // Handle registration error (e.g., show error message)
-          console.error("Registration failed:", result.error);
           return false;
         }
       } catch (error) {
@@ -175,6 +177,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       getMe();
     } else {
       setLoading(false);
+      if (window.location.pathname !== "/login") {
+        router.replace("/login");
+      }
     }
   }, [getMe]);
 

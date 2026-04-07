@@ -16,32 +16,19 @@ import { useAuth } from "@/context/auth-context";
 import { loginSchema, type LoginInput } from "@/lib/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, CheckSquare, Eye, EyeOff } from "lucide-react";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 export default function LoginPage() {
   const { login, user, loading: authLoading } = useAuth();
-  const searchParams = useSearchParams();
-  const expired = searchParams.get("expired") === "1";
   const [showPassword, setShowPassword] = useState(false);
 
   // Redirect already-authenticated users
   useEffect(() => {
     if (!authLoading && user) {
-      window.location.href = "/workspaces";
+      window.location.href = `/${user.company.slug}/workspaces`;
     }
   }, [authLoading, user]);
-
-  // Show session-expired toast once
-  useEffect(() => {
-    if (expired) {
-      toast.error("Session expired", {
-        description: "Please sign in again.",
-      });
-    }
-  }, [expired]);
 
   const {
     register,
@@ -69,11 +56,8 @@ export default function LoginPage() {
     : true;
 
   const onSubmit = async (values: LoginInput) => {
-    console.log("Submitting login form with values:", values);
     try {
       await login(values.email, values.password, values.companySlug);
-      // Redirección manual después del login exitoso
-      window.location.href = "/workspaces";
     } catch (err: unknown) {
       const error = err as { message?: string };
       setError("root", {
@@ -82,16 +66,8 @@ export default function LoginPage() {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Spinner className="h-8 w-8 text-blue-600" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-slate-50 dark:from-blue-950/20 dark:via-background dark:to-slate-950/20 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-background to-slate-50 dark:from-blue-950/20 dark:via-background dark:to-slate-950/20 p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-3 pb-6">
           <div className="flex justify-center">
@@ -106,15 +82,7 @@ export default function LoginPage() {
 
         <CardContent>
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const user = {
-                email: (e.target as any).email.value,
-                password: (e.target as any).password.value,
-                companySlug: (e.target as any).companySlug?.value,
-              };
-              onSubmit(user);
-            }}
+            onSubmit={handleSubmit(onSubmit)}
             className="space-y-4"
             noValidate
           >

@@ -15,7 +15,6 @@ import {
   Users,
 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 
 const features = [
   {
@@ -65,13 +64,6 @@ const stats = [
 
 export default function RootPage() {
   const { user, loading } = useAuth()
-  const router = useRouter()
-
-  // useEffect(() => {
-  //   if (!loading && user) {
-  //     router.replace("/workspaces")
-  //   }
-  // }, [loading, user, router])
 
   if (loading) {
     return (
@@ -80,14 +72,6 @@ export default function RootPage() {
       </div>
     )
   }
-
-  // if (user) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-background">
-  //       <Spinner className="h-8 w-8 text-primary" />
-  //     </div>
-  //   )
-  // }
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans">

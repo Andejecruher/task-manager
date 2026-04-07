@@ -14,13 +14,12 @@ import { useAuth } from "@/context/auth-context";
 import { RegisterSchema } from "@/lib/schemas";
 import { ApiErrorResponse } from "@/types";
 import { CheckSquare } from "lucide-react";
-import Link from "next/link";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, user, loading: authLoading } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +50,6 @@ export default function RegisterPage() {
       const result = await register(data);
       if (result) {
         toast.success("Account created successfully! Please log in.");
-        // TODO: Redirect to login or dashboard after successful registration
       }
     } catch (err: ApiErrorResponse | any) {
       if (err.error) {
@@ -63,6 +61,13 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  // Redirect already-authenticated users
+  useEffect(() => {
+    if (!authLoading && user) {
+      window.location.href = `/${user.company.slug}/workspaces`;
+    }
+  }, [authLoading, user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-background to-blue-50 dark:from-blue-950/20 dark:via-background dark:to-blue-950/20 p-4">
@@ -150,15 +155,6 @@ export default function RegisterPage() {
               {loading ? "Creating account..." : "Create account"}
             </Button>
           </form>
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              className="text-blue-600 hover:underline font-medium"
-            >
-              Sign in
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>

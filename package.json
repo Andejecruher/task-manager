@@ -7,7 +7,6 @@
     "task-manager-frontend"
   ],
   "scripts": {
-    "install": "npm install",
     "start:backend": "cd task-manager-backend && npm run start",
     "start:frontend": "cd task-manager-frontend && npm run dev",
     "dev": "concurrently \"npm: start:backend\" \"npm: start:frontend\"",

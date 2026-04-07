@@ -167,7 +167,7 @@ export default function LoginPage() {
 
             {/* Company Slug */}
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Company Slug</Label>
               <div className="relative">
                 <Input
                   id="companySlug"

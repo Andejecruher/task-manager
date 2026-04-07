@@ -100,6 +100,16 @@ export const updateTaskSchema = createTaskSchema
   .omit({ workspaceId: true });
 export type UpdateTaskFormInput = z.infer<typeof updateTaskSchema>;
 
+// ── Reset Password ───────────────────────────────────────────────────────────
+export const resetPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email es requerido")
+    .email("Ingrese un email válido"),
+});
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
 // ── Profile ──────────────────────────────────────────────────────────────────
 export const profileSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name too long"),

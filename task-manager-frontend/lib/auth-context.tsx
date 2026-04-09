@@ -229,7 +229,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = useCallback(() => {
         setUser(null)
-        localStorage.removeItem(STORAGE_KEY_USER)
         router.replace("/login")
     }, [router])
 

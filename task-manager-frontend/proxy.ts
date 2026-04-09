@@ -1,2 +1,3 @@
 // Hola esto lo modifica eduardo
-// Hola esto lo escribe antonio 
+// Cambio para conflictos
+// Hola esto lo escribe antonio

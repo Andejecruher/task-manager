@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/next"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import type React from "react"
-import { Toaster } from "sonner"
+import AppToaster from "@/components/app-toaster"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -33,7 +33,7 @@ export default function RootLayout({
         <ReactQueryProvider>
           <AuthProvider>
             {children}
-            <Toaster position="top-right" richColors={false} />
+            <AppToaster />
           </AuthProvider>
         </ReactQueryProvider>
         <Analytics />

@@ -106,6 +106,23 @@ class CompanyControllerClass {
       return res.status(500).apiError("Error cambiando de compañía");
     }
   }
+
+  async validateSlug(req: Request, res: Response): Promise<Response> {
+    try {
+      const { companySlug } = req.params;
+
+      const exists = await companyService.checkCompanySlugExists(companySlug);
+
+      return res.apiSuccess(
+        { exists },
+        "Validación de slug completada",
+      );
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Error validando slug:", error);
+      return res.status(500).apiError("Error validando slug");
+    }
+  }
 }
 
 export const CompanyController = new CompanyControllerClass();

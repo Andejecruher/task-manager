@@ -125,4 +125,10 @@ router.post(
   CompanyController.switchCompany.bind(CompanyController),
 );
 
+router.get(
+  '/validate-slug/:companySlug',
+  validateCompanySlug,
+  CompanyController.validateSlug.bind(CompanyController),
+);
+
 export default router;

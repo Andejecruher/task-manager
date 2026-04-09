@@ -66,6 +66,15 @@ class CompanyService {
       },
     };
   }
+
+  async checkCompanySlugExists(slug: string) {
+    const company = await Company.findOne({
+      where: { slug },
+      attributes: ["id"],
+    });
+
+    return !!company;
+  }
 }
 
 export const companyService = new CompanyService();

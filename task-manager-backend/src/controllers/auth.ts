@@ -487,7 +487,7 @@ export class AuthController {
 
     // Access token cookie (httpOnly, seguro)
     res.cookie("access_token", tokens.accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
       maxAge: tokens.expiresIn * 1000,
@@ -496,21 +496,12 @@ export class AuthController {
 
     // Refresh token cookie (httpOnly, seguro)
     res.cookie("refresh_token", tokens.refreshToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
       maxAge: tokens.refreshExpiresIn
         ? tokens.refreshExpiresIn * 1000
         : 604800000,
-      path: "/api/v1/auth/refresh",
-    });
-
-    // Token para frontend (no httpOnly, solo para lectura)
-    res.cookie("token", tokens.accessToken, {
-      httpOnly: false,
-      secure: isProduction,
-      sameSite: isProduction ? "strict" : "lax",
-      maxAge: tokens.expiresIn * 1000,
       path: "/",
     });
   }
@@ -519,20 +510,13 @@ export class AuthController {
     const isProduction = process.env.NODE_ENV === "production";
 
     res.clearCookie("access_token", {
-      httpOnly: true,
+      httpOnly: false,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
       path: "/",
     });
 
     res.clearCookie("refresh_token", {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "strict" : "lax",
-      path: "/api/v1/auth/refresh",
-    });
-
-    res.clearCookie("token", {
       httpOnly: false,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",

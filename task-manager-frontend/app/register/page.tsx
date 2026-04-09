@@ -15,11 +15,11 @@ import { RegisterSchema } from "@/lib/schemas";
 import { ApiErrorResponse } from "@/types";
 import { CheckSquare } from "lucide-react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export default function RegisterPage() {
-  const { register, user, loading: authLoading } = useAuth();
+  const { register } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -61,13 +61,6 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-
-  // Redirect already-authenticated users
-  useEffect(() => {
-    if (!authLoading && user) {
-      window.location.href = `/${user.company.slug}/workspaces`;
-    }
-  }, [authLoading, user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-background to-blue-50 dark:from-blue-950/20 dark:via-background dark:to-blue-950/20 p-4">

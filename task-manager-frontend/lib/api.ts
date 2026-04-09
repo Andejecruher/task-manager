@@ -5,6 +5,7 @@ const apiClient = axios.create({
     headers: {
         "Content-Type": "application/json",
     },
+    withCredentials: true, // Importante para enviar cookies
 });
 
 const authApiClient = axios.create({
@@ -15,9 +16,16 @@ const authApiClient = axios.create({
 });
 
 authApiClient.interceptors.request.use((config => {
-    const tokens = JSON.parse(localStorage.getItem("authTokens") || "null");
-    if (tokens && tokens.accessToken) {
-        config.headers["Authorization"] = `Bearer ${tokens.accessToken}`;
+    // También puedes leer cookies específicas
+    const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts?.pop()?.split(';')?.shift();
+    };
+
+    const token = getCookie('access_token');
+    if (token) {
+        config.headers["Authorization"] = `Bearer ${token}`;
     }
     return config;
 }), error => {
@@ -28,8 +36,8 @@ authApiClient.interceptors.response.use(response => {
     return response;
 }, error => {
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        localStorage.removeItem("authTokens");
-        window.location.href = "/login";
+        // Token inválido o expirado - limpiar sesión
+        console.warn("Authentication error: ", error.response.data);
     }
     return Promise.reject(error);
 });

@@ -16,19 +16,13 @@ import { useAuth } from "@/context/auth-context";
 import { loginSchema, type LoginInput } from "@/lib/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, CheckSquare, Eye, EyeOff } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 export default function LoginPage() {
-  const { login, user, loading: authLoading } = useAuth();
+  const { login, user } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-
-  // Redirect already-authenticated users
-  useEffect(() => {
-    if (!authLoading && user) {
-      window.location.href = `/${user.company.slug}/workspaces`;
-    }
-  }, [authLoading, user]);
 
   const {
     register,
@@ -58,6 +52,9 @@ export default function LoginPage() {
   const onSubmit = async (values: LoginInput) => {
     try {
       await login(values.email, values.password, values.companySlug);
+      toast.success("Login successful", {
+        description: `Welcome back, ${user?.user?.fullName || user?.user?.email}!`,
+      });
     } catch (err: unknown) {
       const error = err as { message?: string };
       setError("root", {

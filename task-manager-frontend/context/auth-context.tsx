@@ -39,7 +39,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [sessionBanner, setSessionBanner] = useState(false);
 
   const login = useCallback(
@@ -56,11 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (result.success) {
           const { user, company, tokens } = result.data;
           setUser({ user, company, tokens });
-          localStorage.setItem("authTokens", JSON.stringify(tokens));
-
-          toast.success("Login successful", {
-            description: `Welcome back, ${user.fullName || user.email}!`,
-          });
 
           setTimeout(() => {
             router.replace(`/${company.slug}/workspaces`);
@@ -113,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (result.success) {
           const { user, company, tokens } = result.data;
           setUser({ user, company, tokens });
-          localStorage.setItem("authTokens", JSON.stringify(tokens));
+
           setTimeout(() => {
             router.replace(`/${company.slug}/workspaces`);
           }, 1500); // Redirect after 1.5 seconds to show success message
@@ -150,9 +145,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Token inválido - limpiar sesión
         localStorage.removeItem("authTokens");
         setUser(null);
-        if (window.location.pathname !== "/login") {
-          router.replace("/login");
-        }
       }
     } catch (error: any) {
       // 👇 Este es el cambio importante
@@ -162,10 +154,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("authTokens");
       setUser(null);
 
-      // Redirigir a login si no está ya ahí
-      if (window.location.pathname !== "/login") {
-        router.replace("/login");
-      }
     } finally {
       setLoading(false);
     }
@@ -175,11 +163,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const tokens = localStorage.getItem("authTokens");
     if (tokens) {
       getMe();
-    } else {
-      setLoading(false);
-      if (window.location.pathname !== "/login") {
-        router.replace("/login");
-      }
     }
   }, [getMe]);
 

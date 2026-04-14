@@ -4,6 +4,7 @@ import {
   getMeServices,
   loginServices,
   registerServices,
+  logoutAllServices,
 } from "@/services/auth";
 import { AuthUser, Company, LoginDTO, RegisterDTO } from "@/types";
 import { useRouter } from "next/navigation";
@@ -28,7 +29,8 @@ interface AuthContextType {
     password: string,
     companySlug?: string,
   ) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+
   register: (data: RegisterDTO) => Promise<boolean>;
 }
 
@@ -60,7 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTimeout(() => {
             router.replace(`/${company.slug}/workspaces`);
           }, 1500); // Redirect after 1.5 seconds to show success message
-
         } else {
           throw new Error(result.error || "Login failed");
         }
@@ -78,13 +79,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [router],
   );
 
-  const logout = useCallback(() => {
-    localStorage.removeItem("authTokens");
-    setUser(null);
-    router.replace("/login");
-    toast.info("Logged out", {
-      description: "You have been successfully logged out.",
-    });
+  const logout = useCallback(async () => {
+    try {
+      await logoutAllServices();
+      toast.info("Logged out", {
+        description: "You have been successfully logged out from all devices.",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Logout error", {
+        description:
+          "There was an error, but you have been logged out locally.",
+      });
+    } finally {
+      // Siempre limpiar, incluso si falla la llamada al backend
+      localStorage.removeItem("authTokens");
+      setUser(null);
+      router.replace("/login");
+    }
   }, [router]);
 
   const register = useCallback(
@@ -153,7 +165,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Limpiar sesión en cualquier error de autenticación
       localStorage.removeItem("authTokens");
       setUser(null);
-
     } finally {
       setLoading(false);
     }

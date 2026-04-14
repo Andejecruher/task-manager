@@ -1,5 +1,18 @@
 import { ApiResponse, AuthUser, LoginDTO, RegisterDTO } from "@/types";
 import axios from "axios";
+import { apiClient } from "@/lib/api";
+
+// Función para limpiar cookies
+function clearAuthCookies() {
+  const cookiesToClear = ["access_token", "refresh_token"];
+  const path = "/";
+
+  cookiesToClear.forEach((cookieName) => {
+    // Limpiar cookie
+    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path};`;
+    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path}; domain=${window.location.hostname}`;
+  });
+}
 
 export async function registerServices(
   data: RegisterDTO,
@@ -8,9 +21,7 @@ export async function registerServices(
     .post(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, data, {
       withCredentials: true,
     })
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((error) => {
       throw error.response?.data;
     });
@@ -27,9 +38,7 @@ export async function getMeServices(): Promise<ApiResponse<AuthUser>> {
         Authorization: `Bearer ${token["accessToken"]}`,
       },
     })
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((error) => {
       throw error.response?.data;
     });
@@ -42,22 +51,44 @@ export async function loginServices(
     .post(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, data, {
       withCredentials: true,
     })
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((error) => {
       throw error.response?.data;
     });
 }
 
-
-export async function validateSlug(slug: string): Promise<ApiResponse<Boolean>> {
+export async function validateSlug(slug: string): Promise<boolean> {
   return await axios
     .get(`${process.env.API_URL}/auth/validate-slug/${slug}`)
-    .then((response) => {
-      return response.data.data.exists;
-    })
-    .catch((error) => {
-      return false;
-    });
+    .then((response) => response.data.data.exists)
+    .catch((error) => false);
+}
+
+export async function logoutAllServices(): Promise<
+  ApiResponse<{ revokedCount: number }>
+> {
+  const token = JSON.parse(localStorage.getItem("authTokens") || "null");
+
+  try {
+    //si falla, igual limpiamos todo
+    if (token) {
+      await apiClient.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/logout-all`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token["accessToken"]}`,
+          },
+          withCredentials: true,
+        },
+      );
+    }
+  } catch (error) {
+    console.error("Logout API error:", error);
+  } finally {
+    // Siempre limpiar cookies y localStorage
+    clearAuthCookies();
+  }
+
+  return { success: true, data: { revokedCount: 0 } } as any;
 }

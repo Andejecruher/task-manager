@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useAuth } from "@/context/auth-context"
 import { STATUS_LABELS, STATUS_ORDER } from "@/lib/schemas"
 import type { Task, TaskStatus, Workspace } from "@/lib/types"
 import { AlertCircle, ArrowLeft, Search } from "lucide-react"
@@ -15,6 +16,7 @@ import { useMemo, useState } from "react"
 
 export default function WorkspaceBoardPage() {
     const params = useParams()
+    const { user } = useAuth()
     const workspaceId = params.workspaceId as string
     const workspace = {} as Workspace;
     const tasks = [] as Task[]
@@ -79,7 +81,7 @@ export default function WorkspaceBoardPage() {
         <>
             <div className="max-w-[1800px] mx-auto space-y-6">
                 <div className="flex items-center gap-3">
-                    <Link href="/workspaces">
+                    <Link href={`/${user?.company?.slug}/workspaces`}>
                         <Button variant="ghost" size="sm" className="gap-1.5">
                             <ArrowLeft className="h-4 w-4" />
                             Workspaces

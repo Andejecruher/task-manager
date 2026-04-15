@@ -2,40 +2,22 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty } from "@/components/ui/empty"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/context/auth-context"
-import { getWorkspaces } from "@/services/workspace"
-import { ApiErrorResponse, Workspace } from "@/types"
+import { useWorkspace } from "@/hooks/use-workspace"
 import { formatDistanceToNow } from "date-fns"
 import { ArrowRight, Layers, ListTodo, Users } from "lucide-react"
-import Link from "next/link"
-import { useEffect, useState } from "react"
-import { toast } from "sonner"
+import { useRouter } from 'next/navigation'
 
 export default function WorkspacesPage() {
     const { user } = useAuth()
-    const [workspaces, setWorkspaces] = useState<Workspace[]>([])
+    const { workspaces, loading, setWorkspaceId } = useWorkspace()
+    const router = useRouter()
 
-    useEffect(() => {
-        const fetchWorkspaces = async () => {
-            try {
-                const response = await getWorkspaces();
-                if (response.success) {
-                    setWorkspaces(response.data.workspaces);
-                } else {
-                    toast.error("Failed to load workspaces: " + response.error);
-                }
-            } catch (err: ApiErrorResponse | any) {
-                if (err.error) {
-                    toast.error(err?.message || err.error);
-                } else {
-                    toast.error("An unexpected error occurred. Please try again.");
-                }
-            }
-        };
-
-        fetchWorkspaces();
-    }, [])
-
+    const handleSelectWorkspace = (id: string) => {
+        setWorkspaceId(id);
+        router.push(`/${user?.company?.slug}/workspaces/${id}`);
+    }
 
     return (
         <div className="max-w-5xl mx-auto space-y-8">
@@ -46,7 +28,33 @@ export default function WorkspacesPage() {
                 </p>
             </div>
 
-            {workspaces.length === 0 && (
+            {loading && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[1, 2, 3].map((i) => (
+                        <Card key={i} className="h-full">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Skeleton className="h-10 w-10 rounded-lg" />
+                                        <Skeleton className="h-5 w-32" />
+                                    </div>
+                                </div>
+                                <Skeleton className="h-4 w-full mt-2" />
+                                <Skeleton className="h-4 w-3/4" />
+                            </CardHeader>
+                            <CardContent className="pt-0 space-y-3">
+                                <div className="flex items-center gap-4">
+                                    <Skeleton className="h-4 w-20" />
+                                    <Skeleton className="h-4 w-16" />
+                                </div>
+                                <Skeleton className="h-3 w-32" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
+
+            {!loading && workspaces.length === 0 && (
                 <Empty
                     title="No workspaces yet"
                 // description="Your company doesn't have any workspaces set up. Contact your administrator."
@@ -54,10 +62,10 @@ export default function WorkspacesPage() {
                 />
             )}
 
-            {workspaces.length > 0 && (
+            {!loading && workspaces.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {workspaces.map((ws) => (
-                        <Link key={ws.id} href={`/${user?.company.slug}/workspaces/${ws.id}`} className="group">
+                        <div key={ws.id} className="group" onClick={() => handleSelectWorkspace(ws.id)}>
                             <Card className="h-full hover:border-blue-500/60 hover:shadow-md transition-all duration-150 cursor-pointer">
                                 <CardHeader className="pb-3">
                                     <div className="flex items-start justify-between gap-2">
@@ -98,7 +106,7 @@ export default function WorkspacesPage() {
                                     </p>
                                 </CardContent>
                             </Card>
-                        </Link>
+                        </div>
                     ))}
                 </div>
             )}

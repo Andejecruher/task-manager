@@ -1,6 +1,6 @@
+import { apiClient } from "@/lib/api";
 import { ApiResponse, AuthUser, LoginDTO, RegisterDTO } from "@/types";
 import axios from "axios";
-import { apiClient } from "@/lib/api";
 
 // Función para limpiar cookies
 function clearAuthCookies() {
@@ -67,22 +67,11 @@ export async function validateSlug(slug: string): Promise<boolean> {
 export async function logoutAllServices(): Promise<
   ApiResponse<{ revokedCount: number }>
 > {
-  const token = JSON.parse(localStorage.getItem("authTokens") || "null");
-
   try {
     //si falla, igual limpiamos todo
-    if (token) {
-      await apiClient.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/logout-all`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token["accessToken"]}`,
-          },
-          withCredentials: true,
-        },
-      );
-    }
+    await apiClient.post(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/logout-all`
+    );
   } catch (error) {
     console.error("Logout API error:", error);
   } finally {

@@ -496,13 +496,13 @@ export class AuthController {
 
     // Refresh token cookie (httpOnly, seguro)
     res.cookie("refresh_token", tokens.refreshToken, {
-      httpOnly: false,
+      httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
       maxAge: tokens.refreshExpiresIn
         ? tokens.refreshExpiresIn * 1000
         : 604800000,
-      path: "/",
+      path: "/api/v1/auth/refresh",
     });
   }
 
@@ -517,10 +517,10 @@ export class AuthController {
     });
 
     res.clearCookie("refresh_token", {
-      httpOnly: false,
+      httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
-      path: "/",
+      path: "/api/v1/auth/refresh",
     });
   }
 }

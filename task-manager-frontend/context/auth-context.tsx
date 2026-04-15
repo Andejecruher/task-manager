@@ -3,8 +3,8 @@
 import {
   getMeServices,
   loginServices,
-  registerServices,
   logoutAllServices,
+  registerServices,
 } from "@/services/auth";
 import { AuthUser, Company, LoginDTO, RegisterDTO } from "@/types";
 import { useRouter } from "next/navigation";
@@ -92,8 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           "There was an error, but you have been logged out locally.",
       });
     } finally {
-      // Siempre limpiar, incluso si falla la llamada al backend
-      localStorage.removeItem("authTokens");
       setUser(null);
       router.replace("/login");
     }

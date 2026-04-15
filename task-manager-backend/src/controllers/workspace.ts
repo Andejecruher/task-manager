@@ -563,5 +563,50 @@ export class WorkspaceController {
       return res.status(500).apiError("Error interno del servidor");
     }
   }
+
+  async getTasksByWorkspaceId(req: Request, res: Response) {
+    try {
+      // Validar el parámetro ID de la URL
+      const paramsDto = plainToClass(WorkspaceIdParamsDTO, req.params);
+      const paramsErrors = await validate(paramsDto);
+
+      if (paramsErrors.length > 0) {
+        return res.status(400).apiValidationError(paramsErrors);
+      }
+
+      // Obtener datos del usuario autenticado
+      const authReq = req as AuthRequest;
+      const companyId = authReq.company?.id;
+      const userId = authReq.user?.id;
+
+      if (!companyId) {
+        return res
+          .status(400)
+          .apiError("No se pudo identificar la compañía", 400);
+      }
+
+      if (!userId) {
+        return res.status(400).apiError("Usuario no autenticado", 400);
+      }
+      // Llamar al servicio para obtener las tareas del workspace
+      const tasks = await workspaceService.getTasksByWorkspaceId(paramsDto.id);
+
+      return res
+        .status(200)
+        .apiSuccess(tasks, "Tareas del workspace obtenidas exitosamente");
+    } catch (error) {
+      logger.error("Error getting tasks by workspace ID:", error);
+
+      if (error instanceof AuthError) {
+        return res
+          .status(error.statusCode)
+          .apiError(error.message, error.statusCode, {
+            code: error.code,
+          });
+      }
+
+      return res.status(500).apiError("Error interno del servidor");
+    }
+  }
 }
 export const workspaceController = new WorkspaceController();

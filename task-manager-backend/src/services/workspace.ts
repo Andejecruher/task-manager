@@ -1,4 +1,5 @@
 // services/workspace/index.ts
+import { Task } from "@/database/models";
 import { Company } from "@/database/models/Company";
 import { User } from "@/database/models/User";
 import { Workspace } from "@/database/models/Workspace";
@@ -867,6 +868,25 @@ class WorkspaceService {
       }
       logger.error("Error agregando miembro:", error);
       throw new AuthError("Error al agregar miembro", "ADD_MEMBER_ERROR", 500);
+    }
+  }
+
+  async getTasksByWorkspaceId(
+    workspaceId: string,
+  ) {
+    try {
+      const tasks = await Task.findAll({
+        where: {
+          workspace_id: workspaceId,
+        },
+      });
+      return tasks;
+    } catch (error) {
+      if (error instanceof AuthError) {
+        throw error;
+      }
+      logger.error("Error obteniendo tareas del workspace:", error);
+      throw new AuthError("Error al obtener tareas del workspace", "GET_TASKS_ERROR", 500);
     }
   }
 }

@@ -99,11 +99,7 @@ router.get(
   authenticate,
   requireEmailVerified,
   extractDeviceInfo,
-  (req, res) => {
-    const { id } = req.params;
-    // Placeholder for fetching workspace tasks logic
-    res.json({ message: `List of tasks for workspace ID: ${id}` });
-  },
+  workspaceController.getTasksByWorkspaceId.bind(workspaceController),
 );
 
 export default router;

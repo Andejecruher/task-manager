@@ -4,7 +4,7 @@ import axios from "axios";
 
 // Función para limpiar cookies
 function clearAuthCookies() {
-  const cookiesToClear = ["access_token", "refresh_token"];
+  const cookiesToClear = ["access_token"];
   const path = "/";
 
   cookiesToClear.forEach((cookieName) => {
@@ -57,9 +57,11 @@ export async function loginServices(
     });
 }
 
-export async function validateSlug(slug: string): Promise<boolean> {
+export async function validateSlug(slug: string, token?: string): Promise<boolean> {
   return await axios
-    .get(`${process.env.API_URL}/auth/validate-slug/${slug}`)
+    .get(`${process.env.API_URL}/auth/validate-slug/${slug}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    })
     .then((response) => response.data.data.exists)
     .catch((error) => false);
 }

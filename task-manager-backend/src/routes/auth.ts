@@ -127,6 +127,7 @@ router.post(
 
 router.get(
   '/validate-slug/:companySlug',
+  authenticate,
   validateCompanySlug,
   CompanyController.validateSlug.bind(CompanyController),
 );

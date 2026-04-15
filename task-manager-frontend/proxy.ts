@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
     // Validar slug real para rutas protegidas (ej: /workspace/:id)
     const domain = pathname.split('/')[1]
 
-    const isValidatingSlug = await validateSlug(domain);
+    const isValidatingSlug = await validateSlug(domain, token);
 
     if (!isValidatingSlug && !isPublic) {
         return NextResponse.redirect(new URL('/404', request.url))

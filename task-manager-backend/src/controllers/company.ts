@@ -107,15 +107,35 @@ class CompanyControllerClass {
     }
   }
 
-  async validateSlug(req: Request, res: Response): Promise<Response> {
+  validateSlug(req: Request, res: Response): Response {
     try {
       const { companySlug } = req.params;
 
-      const exists = await companyService.checkCompanySlugExists(companySlug);
+      const authReq = req as AuthRequest;
 
-      return res.apiSuccess(
-        { exists },
-        "Validación de slug completada",
+      const userInfo = {
+        user: authReq.user,
+        company: authReq.company,
+        sessionId: authReq.sessionId,
+      };
+
+      if (!userInfo.user || !userInfo.sessionId) {
+        return res.status(401).apiError("No autenticado");
+      }
+
+      const company = userInfo.company;
+
+      if (company?.slug === companySlug) {
+        return res.apiSuccess(
+          { exists: true },
+          "Validación de slug completada",
+        );
+      }
+
+      return res.apiError(
+        "Slug no válido",
+        404,
+        { code: "INVALID_COMPANY_SLUG" },
       );
     } catch (error) {
       // eslint-disable-next-line no-console

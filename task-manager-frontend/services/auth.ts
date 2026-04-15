@@ -1,4 +1,4 @@
-import { apiClient } from "@/lib/api";
+import { authApiClient } from "@/lib/api";
 import { ApiResponse, AuthUser, LoginDTO, RegisterDTO } from "@/types";
 import axios from "axios";
 
@@ -28,16 +28,8 @@ export async function registerServices(
 }
 
 export async function getMeServices(): Promise<ApiResponse<AuthUser>> {
-  const token = JSON.parse(localStorage.getItem("authTokens") || "null");
-  if (!token) {
-    throw new Error("No authentication token found. Please log in.");
-  }
-  return await axios
-    .get(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
-      headers: {
-        Authorization: `Bearer ${token["accessToken"]}`,
-      },
-    })
+  return await authApiClient
+    .get(`/auth/me`)
     .then((response) => response.data)
     .catch((error) => {
       throw error.response?.data;
@@ -71,8 +63,8 @@ export async function logoutAllServices(): Promise<
 > {
   try {
     //si falla, igual limpiamos todo
-    await apiClient.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/logout-all`
+    await authApiClient.post(
+      `/auth/logout-all`
     );
   } catch (error) {
     console.error("Logout API error:", error);

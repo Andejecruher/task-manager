@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getCookie } from "./cookies";
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -17,13 +18,6 @@ const authApiClient = axios.create({
 
 authApiClient.interceptors.request.use(
   (config) => {
-    // También puedes leer cookies específicas
-    const getCookie = (name: string) => {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) return parts?.pop()?.split(";")?.shift();
-    };
-
     const token = getCookie("access_token");
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;

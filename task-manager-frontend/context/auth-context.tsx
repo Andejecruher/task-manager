@@ -1,5 +1,6 @@
 "use client";
 
+import { getCookie } from "@/lib/cookies";
 import {
   getMeServices,
   loginServices,
@@ -136,44 +137,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const getMe = useCallback(async () => {
     try {
-      const tokens = localStorage.getItem("authTokens");
-      if (!tokens) {
+      if (user) {
         setLoading(false);
         return;
       }
 
       const result = await getMeServices();
       if (result.success) {
-        const { user, company } = result.data;
+        const { user, company, tokens } = result.data;
         setUser({
           user,
           company,
-          tokens: JSON.parse(tokens),
+          tokens,
         });
       } else {
-        console.error("Failed to fetch user profile:", result.error);
-        // Token inválido - limpiar sesión
-        localStorage.removeItem("authTokens");
-        setUser(null);
+        throw new Error(result.error || "Failed to fetch user data");
       }
-    } catch (error: any) {
-      // 👇 Este es el cambio importante
-      console.error("Error fetching user profile:", error);
-
-      // Limpiar sesión en cualquier error de autenticación
-      localStorage.removeItem("authTokens");
+    } catch (error) {
       setUser(null);
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [user]);
 
   useEffect(() => {
-    const tokens = localStorage.getItem("authTokens");
-    if (tokens) {
+    const token = getCookie("access_token");
+    if (!user && token) {
       getMe();
     }
-  }, [getMe]);
+  }, []);
 
   return (
     <AuthContext.Provider

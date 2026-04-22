@@ -123,6 +123,8 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
   in_progress: "In Progress",
   in_review: "In Review",
   done: "Done",
+  blocked: "Blocked",
+  cancelled: "Cancelled",
 };
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
@@ -137,6 +139,8 @@ export const STATUS_ORDER: TaskStatus[] = [
   "in_progress",
   "in_review",
   "done",
+  "blocked",
+  "cancelled",
 ];
 
 export const PRIORITY_COLORS: Record<Priority, string> = {
@@ -151,6 +155,8 @@ export const STATUS_COLORS: Record<TaskStatus, string> = {
   in_progress: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
   in_review: "bg-purple-500/10 text-purple-700 dark:text-purple-400",
   done: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  blocked: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
+  cancelled: "bg-red-500/10 text-red-700 dark:text-red-400",
 };
 
 export const STATUS_DOT_COLORS: Record<TaskStatus, string> = {
@@ -158,4 +164,6 @@ export const STATUS_DOT_COLORS: Record<TaskStatus, string> = {
   in_progress: "bg-blue-500",
   in_review: "bg-purple-500",
   done: "bg-emerald-500",
+  blocked: "bg-yellow-500",
+  cancelled: "bg-red-500",
 };

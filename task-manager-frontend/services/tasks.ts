@@ -14,7 +14,10 @@ export async function createTask(
   },
 ): Promise<ApiResponse<Task>> {
   return await authApiClient
-    .post(`/workspace/${workspaceId}/tasks`, data)
+    .post(`/task`, {
+      ...data,
+      workspace_id: workspaceId,
+    })
     .then((response) => response.data)
     .catch((error) => {
       throw error.response?.data;

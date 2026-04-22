@@ -1,18 +1,18 @@
+import { tasksService } from "@/services/tasks";
 import { AuthError, type AuthRequest } from "@/types";
 import { logger } from "@/utils/logger";
 import { plainToClass } from "class-transformer";
 import {
-  IsNotEmpty,
-  IsString,
-  IsOptional,
-  IsUUID,
-  IsDate,
   IsArray,
+  IsDate,
   IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  validate,
 } from "class-validator";
-import { validate } from "class-validator";
 import type { Request, Response } from "express";
-import { tasksService } from "@/services/tasks";
 
 // DTO para validar el ID del workspace
 class WorkspaceIdParamsDTO {
@@ -29,6 +29,10 @@ class TaskIdParamsDTO {
 
 // DTO para crear tarea
 class CreateTaskDTO {
+  @IsUUID("4", { message: "El ID del workspace debe ser un UUID válido" })
+  @IsNotEmpty({ message: "El ID del workspace es requerido" })
+  workspace_id!: string;
+
   @IsString({ message: "El título debe ser un texto" })
   @IsNotEmpty({ message: "El título es requerido" })
   title!: string;
@@ -108,14 +112,6 @@ export class TasksController {
   // ✅ CREAR TAREA
   async createTask(req: Request, res: Response) {
     try {
-      // Validar el parámetro ID del workspace
-      const paramsDto = plainToClass(WorkspaceIdParamsDTO, req.params);
-      const paramsErrors = await validate(paramsDto);
-
-      if (paramsErrors.length > 0) {
-        return res.status(400).apiValidationError(paramsErrors);
-      }
-
       // Validar el body
       const bodyDto = plainToClass(CreateTaskDTO, req.body);
       const bodyErrors = await validate(bodyDto);
@@ -127,7 +123,7 @@ export class TasksController {
       const authReq = req as AuthRequest;
       const companyId = authReq.company?.id;
       const userId = authReq.user?.id;
-      const workspaceId = paramsDto.id;
+      const workspaceId = bodyDto.workspace_id;
 
       if (!companyId) {
         return res

@@ -1,22 +1,22 @@
 "use client";
 
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   createTask as createTaskService,
+  deleteTask as deleteTaskService,
   getTasks,
   updateTask as updateTaskService,
-  deleteTask as deleteTaskService,
 } from "@/services/tasks";
 import { ApiErrorResponse, Task } from "@/types";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
-  useCallback,
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
-import { useWorkspace } from "@/hooks/use-workspace";
 
 interface TaskContextType {
   tasks: Task[];
@@ -44,8 +44,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       const response = await getTasks(workspaceId);
       if (response.success) {
-        const tasksArray = Array.isArray(response.data.tasks)
-          ? response.data.tasks
+        const tasksArray = Array.isArray(response.data)
+          ? response.data
           : [];
         setTasks(tasksArray);
       } else {
@@ -83,10 +83,9 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       });
 
       if (response.success) {
-        await refreshTasks();
         setTasks((prev) => {
           const currentTasks = Array.isArray(prev) ? prev : [];
-          return [response.data, ...currentTasks];
+          return [...currentTasks, response.data];
         });
         toast.success("Task created successfully");
         return response.data;

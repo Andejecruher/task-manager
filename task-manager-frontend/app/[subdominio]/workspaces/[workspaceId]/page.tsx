@@ -1,22 +1,22 @@
 "use client";
 
+import { CreateTaskDialog } from "@/components/create-task-dialog";
 import { TaskCard } from "@/components/task-card";
+import { TaskDetailsDialog } from "@/components/task-details-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CreateTaskDialog } from "@/components/create-task-dialog";
-import { TaskDetailsDialog } from "@/components/task-details-dialog";
 import { useAuth } from "@/context/auth-context";
 import { useTask } from "@/hooks/use-task";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { STATUS_LABELS, STATUS_ORDER } from "@/lib/schemas";
-import type { TaskStatus, Workspace } from "@/lib/types";
+import type { TaskStatus } from "@/lib/types";
 import type { Task } from "@/types/task";
 import { AlertCircle, ArrowLeft, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function WorkspaceBoardPage() {
   const params = useParams();

@@ -1,39 +1,6 @@
 "use client";
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Empty } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/context/auth-context";
-import { useWorkspace } from "@/hooks/use-workspace";
-import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, MoreHorizontal } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { ArrowRight, Layers, ListTodo, Users } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -43,10 +10,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Empty } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
+import FormWorkspace from "@/components/workspaces/form-workspace";
+import { useAuth } from "@/context/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { Workspace } from "@/types";
+import { formatDistanceToNow } from "date-fns";
+import { Layers, ListTodo, MoreHorizontal, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function WorkspacesPage() {
   const { user } = useAuth();
@@ -61,23 +50,8 @@ export default function WorkspacesPage() {
   const router = useRouter();
 
   // Estado para crear workspace
+  const [workSpace, setWorkSpace] = useState<Workspace>({} as Workspace)
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [icon, setIcon] = useState("");
-  const [color, setColor] = useState("#3B82F6");
-  const [isCreating, setIsCreating] = useState(false);
-
-  // Estado para editar workspace
-  const [editOpen, setEditOpen] = useState(false);
-  const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(
-    null,
-  );
-  const [editName, setEditName] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editIcon, setEditIcon] = useState("");
-  const [editColor, setEditColor] = useState("#3B82F6");
-  const [isEditing, setIsEditing] = useState(false);
 
   // Estado para eliminar workspace
   const [deleteTarget, setDeleteTarget] = useState<Workspace | null>(null);
@@ -99,94 +73,33 @@ export default function WorkspacesPage() {
     router.push(`/${user?.company?.slug}/workspaces/${id}`);
   };
 
-  // Crear workspace
-  const handleCreateWorkspace = async () => {
-    if (!name.trim()) {
+  // Guardar edición
+  const handleSaveEdit = async (workspace: Workspace) => {
+    if (!workspace.name.trim()) {
       toast.error("Workspace name is required");
       return;
     }
+    await updateWorkspace(workspace!.id, workspace);
+  };
 
-    const slug = generateSlug(name);
-    if (!slug) {
-      toast.error("Invalid workspace name for slug generation");
-      return;
-    }
-
-    const dataToSend = {
-      name: name.trim(),
-      slug: slug,
-      description: description.trim() || undefined,
-      icon: icon.trim() || undefined,
-      color: color || undefined,
-    };
-
-    setIsCreating(true);
+  // Crear workspace
+  const handleCreateWorkspace = async (workspace: Workspace) => {
     try {
-      await createWorkspace(dataToSend);
-      setOpen(false);
-      setName("");
-      setDescription("");
-      setIcon("");
-      setColor("#3B82F6");
-      toast.success(`Workspace "${name}" created successfully!`);
+      await createWorkspace(workspace);
+      toast.success(`Workspace "${workspace.name}" created successfully!`);
     } catch (error) {
       toast.error("Failed to create workspace");
-    } finally {
-      setIsCreating(false);
     }
   };
 
-  // Abrir diálogo de edición
-  const handleEdit = (workspace: Workspace) => {
-    setEditingWorkspace(workspace);
-    setEditName(workspace.name);
-    setEditDescription(workspace.description || "");
-    setEditIcon(workspace.icon || "");
-    setEditColor(workspace.color || "#3B82F6");
-    setEditOpen(true);
-  };
-
-  // Guardar edición
-  const handleSaveEdit = async () => {
-    if (!editName.trim()) {
-      toast.error("Workspace name is required");
-      return;
+  const handleCreateOrEditWorkspace = async (workspace: Workspace) => {
+    if (workspace.id) {
+      // Si el workspace tiene ID, es una edición
+      await handleSaveEdit(workspace);
+    } else {
+      // Si no tiene ID, es una creación
+      await handleCreateWorkspace(workspace);
     }
-
-    const updateData: {
-      name?: string;
-      slug?: string;
-      description?: string;
-      icon?: string;
-      color?: string;
-    } = {};
-
-    // Solo enviar campos que cambiaron
-    if (editName !== editingWorkspace?.name) {
-      updateData.name = editName.trim();
-      updateData.slug = generateSlug(editName);
-    }
-    if (editDescription !== (editingWorkspace?.description || "")) {
-      updateData.description = editDescription.trim() || undefined;
-    }
-    if (editIcon !== (editingWorkspace?.icon || "")) {
-      updateData.icon = editIcon.trim() || undefined;
-    }
-    if (editColor !== (editingWorkspace?.color || "#3B82F6")) {
-      updateData.color = editColor;
-    }
-
-    if (Object.keys(updateData).length === 0) {
-      setEditOpen(false);
-      return;
-    }
-
-    setIsEditing(true);
-    await updateWorkspace(editingWorkspace!.id, updateData);
-    setIsEditing(false);
-
-    setEditOpen(false);
-    setEditingWorkspace(null);
   };
 
   // Confirmar eliminación
@@ -200,6 +113,11 @@ export default function WorkspacesPage() {
     setDeleteTarget(null);
   };
 
+  const handleOpenForm = (workspace: Workspace | undefined) => {
+    setWorkSpace(workspace || {} as Workspace);
+    setOpen(true);
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
@@ -210,176 +128,15 @@ export default function WorkspacesPage() {
           </p>
         </div>
         <div>
-          <Button onClick={() => setOpen(true)}>
+          <Button onClick={() => handleOpenForm(undefined)}>
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Workspace
           </Button>
         </div>
       </div>
 
-      {/* Diálogo para CREAR workspace */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Create New Workspace</DialogTitle>
-            <DialogDescription>
-              Enter the details for your new workspace.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                placeholder="Workspace name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={isCreating}
-              />
-              {name && (
-                <p className="text-xs text-muted-foreground">
-                  Slug: {generateSlug(name)}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe your workspace"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={isCreating}
-                rows={2}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="icon">Icon (emoji)</Label>
-              <Input
-                id="icon"
-                placeholder="e.g., 🚀, 💼, 🎨"
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-                disabled={isCreating}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="color">Color</Label>
-              <div className="flex gap-2 items-center">
-                <Input
-                  id="color"
-                  type="color"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  disabled={isCreating}
-                  className="w-16 h-10 p-1"
-                />
-                <Input
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  disabled={isCreating}
-                  placeholder="#3B82F6"
-                  className="flex-1"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={isCreating}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleCreateWorkspace} disabled={isCreating}>
-              {isCreating ? "Creating..." : "Create"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Diálogo para EDITAR workspace */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Workspace</DialogTitle>
-            <DialogDescription>
-              Update the details of your workspace.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Name *</Label>
-              <Input
-                id="edit-name"
-                placeholder="Workspace name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                disabled={isEditing}
-              />
-              {editName && (
-                <p className="text-xs text-muted-foreground">
-                  Slug: {generateSlug(editName)}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                placeholder="Describe your workspace"
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                disabled={isEditing}
-                rows={2}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-icon">Icon (emoji)</Label>
-              <Input
-                id="edit-icon"
-                placeholder="e.g., 🚀, 💼, 🎨"
-                value={editIcon}
-                onChange={(e) => setEditIcon(e.target.value)}
-                disabled={isEditing}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-color">Color</Label>
-              <div className="flex gap-2 items-center">
-                <Input
-                  id="edit-color"
-                  type="color"
-                  value={editColor}
-                  onChange={(e) => setEditColor(e.target.value)}
-                  disabled={isEditing}
-                  className="w-16 h-10 p-1"
-                />
-                <Input
-                  value={editColor}
-                  onChange={(e) => setEditColor(e.target.value)}
-                  disabled={isEditing}
-                  placeholder="#3B82F6"
-                  className="flex-1"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setEditOpen(false)}
-              disabled={isEditing}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSaveEdit} disabled={isEditing}>
-              {isEditing ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Dialog Edit and Create workspace */}
+      <FormWorkspace open={open} setOpen={setOpen} workspace={workSpace} setWorkspace={setWorkSpace} handleSave={handleCreateOrEditWorkspace} />
 
       {/* AlertDialog para CONFIRMAR ELIMINACIÓN */}
       <AlertDialog
@@ -494,7 +251,7 @@ export default function WorkspacesPage() {
                         align="end"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <DropdownMenuItem onClick={() => handleEdit(ws)}>
+                        <DropdownMenuItem onClick={() => handleOpenForm(ws)}>
                           <Pencil className="h-4 w-4 mr-2" />
                           Edit
                         </DropdownMenuItem>

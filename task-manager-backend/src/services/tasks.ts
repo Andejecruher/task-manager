@@ -187,6 +187,90 @@ class TasksService {
     }
   }
 
+  // services/tasks.ts - Reemplaza el método moveToNextStatus
+
+  async moveToNextStatus(
+    taskId: string,
+    companyId: string,
+    userId: string,
+  ): Promise<Task> {
+    try {
+      // 1. Buscar la tarea
+      const task = await Task.findOne({
+        where: {
+          id: taskId,
+          company_id: companyId,
+        },
+      });
+
+      if (!task) {
+        throw new AuthError("Tarea no encontrada", "TASK_NOT_FOUND", 404);
+      }
+
+      // 2. Verificar que el usuario existe
+      const user = await User.findByPk(userId);
+      if (!user) {
+        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+      }
+
+      // 3. Definir el ciclo de estados (en orden)
+      const statusFlow = [
+        "todo",
+        "in_progress",
+        "review",
+        "done",
+        "blocked",
+        "cancelled",
+      ];
+
+      // 4. Encontrar el índice actual
+      const currentIndex = statusFlow.indexOf(task.status);
+
+      // 5. Calcular siguiente estado (cíclico: vuelve al inicio después del último)
+      let nextStatus;
+      if (currentIndex === statusFlow.length - 1) {
+        // Si está en el último estado, vuelve al primero
+        nextStatus = statusFlow[0];
+      } else {
+        // Sino, va al siguiente
+        nextStatus = statusFlow[currentIndex + 1];
+      }
+
+      // 6. Actualizar la tarea al siguiente estado
+      await task.update({
+        status: nextStatus as
+          | "todo"
+          | "in_progress"
+          | "review"
+          | "done"
+          | "blocked"
+          | "cancelled",
+        updated_at: new Date(),
+        updated_by: userId,
+      });
+
+      logger.info("Tarea movida al siguiente estado (cíclico)", {
+        taskId,
+        fromStatus: task.status,
+        toStatus: nextStatus,
+        updatedBy: userId,
+      });
+
+      // Recargar la tarea con los datos actualizados
+      await task.reload();
+
+      return task;
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error moviendo tarea al siguiente estado:", error);
+      throw new AuthError(
+        "Error moviendo tarea al siguiente estado",
+        "MOVE_TASK_ERROR",
+        500,
+      );
+    }
+  }
+
   async deleteTask(
     taskId: string,
     companyId: string,

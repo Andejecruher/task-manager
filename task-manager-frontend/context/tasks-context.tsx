@@ -5,6 +5,7 @@ import {
   createTask as createTaskService,
   deleteTask as deleteTaskService,
   getTasks,
+  moveToNextStatus as moveTask,
   updateTask as updateTaskService,
 } from "@/services/tasks";
 import { ApiErrorResponse, Task } from "@/types";
@@ -24,6 +25,7 @@ interface TaskContextType {
   createTask: (data: any) => Promise<Task | null>;
   updateTask: (id: string, data: any) => Promise<Task | null>;
   deleteTask: (id: string) => Promise<boolean>;
+  moveToNextStatus: (id: string) => Promise<Task | null>;
   refreshTasks: () => Promise<void>;
 }
 
@@ -44,9 +46,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       const response = await getTasks(workspaceId);
       if (response.success) {
-        const tasksArray = Array.isArray(response.data)
-          ? response.data
-          : [];
+        const tasksArray = Array.isArray(response.data) ? response.data : [];
         setTasks(tasksArray);
       } else {
         toast.error("Failed to load tasks: " + response.error);
@@ -95,6 +95,30 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       console.error("Create task error:", err);
+      toast.error(err?.message || "An unexpected error occurred");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const moveToNextStatus = async (id: string): Promise<Task | null> => {
+    try {
+      setLoading(true);
+      const response = await moveTask(id);
+
+      if (response.success) {
+        setTasks((prev) =>
+          prev.map((task) => (task.id === id ? response.data : task)),
+        );
+        toast.success("Task moved to next status successfully");
+        return response.data;
+      } else {
+        toast.error("Failed to move task: " + response.error);
+        return null;
+      }
+    } catch (err: any) {
+      console.error("Move task error:", err);
       toast.error(err?.message || "An unexpected error occurred");
       return null;
     } finally {
@@ -157,6 +181,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         updateTask,
         deleteTask,
         refreshTasks,
+        moveToNextStatus,
       }}
     >
       {children}

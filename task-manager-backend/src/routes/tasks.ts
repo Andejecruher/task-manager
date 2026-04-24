@@ -32,6 +32,14 @@ router.put(
   tasksController.updateTask.bind(tasksController),
 );
 
+router.patch(
+  "/:taskId/next-status",
+  authenticate,
+  requireEmailVerified,
+  extractDeviceInfo,
+  tasksController.moveToNextStatus.bind(tasksController),
+);
+
 router.delete(
   "/:taskId",
   authenticate,

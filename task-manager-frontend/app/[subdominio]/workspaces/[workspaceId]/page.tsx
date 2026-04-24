@@ -87,7 +87,7 @@ export default function WorkspaceBoardPage() {
   const colorMap: Record<TaskStatus, string> = {
     todo: "bg-slate-500",
     in_progress: "bg-blue-500",
-    in_review: "bg-purple-500",
+    review: "bg-purple-500",
     done: "bg-emerald-500",
     blocked: "bg-red-500",
     cancelled: "bg-gray-500",

@@ -2,24 +2,45 @@
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button"; // ← NUEVO
+import { useTask } from "@/hooks/use-task"; // ← NUEVO
 import { PRIORITY_COLORS, PRIORITY_LABELS } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/types";
-import type { Task } from "@/types/task"; // ← Cambiar import
+import type { Task } from "@/types/task";
 import { format } from "date-fns";
 import { Calendar } from "lucide-react";
+import { useState } from "react"; // ← NUEVO
 
 interface TaskCardProps {
-  task: Task; // ← Usa tu tipo Task
+  task: Task;
   assignee?: AuthUser;
   onClick?: () => void;
 }
 
 export function TaskCard({ task, assignee, onClick }: TaskCardProps) {
-  // Usar task.due_date (con guión bajo) en lugar de task.dueDate
+  // ← NUEVO: hooks para mover tarea
+  const { moveToNextStatus } = useTask();
+  const [isMoving, setIsMoving] = useState(false);
+
   const isOverdue =
     task.due_date &&
     new Date(task.due_date) < new Date() &&
     task.status !== "done";
+
+  // ← NUEVO: función para mover al siguiente estado
+  const handleMoveToNext = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isMoving) return;
+
+    setIsMoving(true);
+    try {
+      await moveToNextStatus(task.id);
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
+  // ← NUEVO: mostrar botón solo en estados que pueden moverse
 
   return (
     <div

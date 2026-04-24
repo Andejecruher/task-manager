@@ -8,13 +8,7 @@ export interface Task {
   description?: string;
   description_html?: string;
   column_id?: string;
-  status:
-    | "todo"
-    | "in_progress"
-    | "in_review"
-    | "done"
-    | "blocked"
-    | "cancelled";
+  status: "todo" | "in_progress" | "review" | "done" | "blocked" | "cancelled";
   priority: "low" | "medium" | "high" | "urgent";
   assignee_id?: string;
   assignee_ids?: string[];

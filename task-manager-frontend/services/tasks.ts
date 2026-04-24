@@ -36,6 +36,17 @@ export async function getTasks(
     });
 }
 
+export async function moveToNextStatus(
+  taskId: string,
+): Promise<ApiResponse<Task>> {
+  return await authApiClient
+    .patch(`/task/${taskId}/next-status`)
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
 // Actualizar tarea
 export async function updateTask(
   taskId: string,
@@ -50,7 +61,7 @@ export async function updateTask(
   },
 ): Promise<ApiResponse<Task>> {
   return await authApiClient
-    .put(`/tasks/${taskId}`, data)
+    .put(`/task/${taskId}`, data)
     .then((response) => response.data)
     .catch((error) => {
       throw error.response?.data;
@@ -60,7 +71,7 @@ export async function updateTask(
 // Eliminar tarea
 export async function deleteTask(taskId: string): Promise<ApiResponse<null>> {
   return await authApiClient
-    .delete(`/tasks/${taskId}`)
+    .delete(`/task/${taskId}`)
     .then((response) => response.data)
     .catch((error) => {
       throw error.response?.data;

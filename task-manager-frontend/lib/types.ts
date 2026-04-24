@@ -4,7 +4,7 @@ export type Priority = "low" | "medium" | "high" | "urgent";
 export type TaskStatus =
   | "todo"
   | "in_progress"
-  | "in_review"
+  | "review"
   | "done"
   | "blocked"
   | "cancelled";

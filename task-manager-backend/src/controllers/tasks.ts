@@ -109,7 +109,6 @@ class UpdateTaskDTO {
 }
 
 export class TasksController {
-  // ✅ CREAR TAREA
   async createTask(req: Request, res: Response) {
     try {
       // Validar el body
@@ -252,6 +251,58 @@ export class TasksController {
       if (error instanceof AuthError) {
         return res.status(error.statusCode).apiError(error.message);
       }
+      return res.status(500).apiError("Error interno del servidor");
+    }
+  }
+
+  async moveToNextStatus(req: Request, res: Response) {
+    try {
+      // Validar el ID de la tarea
+      const paramsDto = plainToClass(TaskIdParamsDTO, req.params);
+      const paramsErrors = await validate(paramsDto);
+
+      if (paramsErrors.length > 0) {
+        return res.status(400).apiValidationError(paramsErrors);
+      }
+
+      const authReq = req as AuthRequest;
+      const companyId = authReq.company?.id;
+      const userId = authReq.user?.id;
+
+      if (!companyId) {
+        return res
+          .status(400)
+          .apiError("No se pudo identificar la compañía", 400);
+      }
+
+      if (!userId) {
+        return res.status(400).apiError("Usuario no autenticado", 400);
+      }
+
+      // Llamar al servicio para mover al siguiente estado
+      const updatedTask = await tasksService.moveToNextStatus(
+        paramsDto.taskId,
+        companyId,
+        userId,
+      );
+
+      return res
+        .status(200)
+        .apiSuccess(
+          updatedTask,
+          "Tarea movida al siguiente estado exitosamente",
+        );
+    } catch (error) {
+      logger.error("Error moving task to next status:", String(error));
+
+      if (error instanceof AuthError) {
+        return res
+          .status(error.statusCode)
+          .apiError(error.message, error.statusCode, {
+            code: error.code,
+          });
+      }
+
       return res.status(500).apiError("Error interno del servidor");
     }
   }

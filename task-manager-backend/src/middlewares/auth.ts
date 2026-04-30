@@ -1,3 +1,5 @@
+import { Company } from "@/database/models/Company";
+import { User } from "@/database/models/User";
 import { sessionService } from "@/services/session";
 import { tokenService } from "@/services/token";
 import type {
@@ -10,8 +12,6 @@ import type {
 import { AuthError } from "@/types";
 import { logger } from "@/utils/logger";
 import type { NextFunction, Request, Response } from "express";
-import { User } from "@/database/models/User";
-import { Company } from "@/database/models/Company";
 /**
  * Middleware de autenticación principal
  * Extrae y valida el token JWT del header Authorization

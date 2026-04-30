@@ -321,6 +321,15 @@ export class AuthService {
         );
       }
 
+      // 5.1 Verificar si el email está verificado
+      if (!user.email_verified) {
+        throw new AuthError(
+          "Email no verificado",
+          "EMAIL_NOT_VERIFIED",
+          403,
+        );
+      }
+
       // 6. Resetear contador de intentos fallidos (login exitoso)
       await user.resetFailedAttempts();
 
@@ -468,7 +477,7 @@ export class AuthService {
   /**
    * Verificar email
    */
-  async verifyEmail(token: string): Promise<void> {
+  async verifyEmail(token: string): Promise<string> {
     try {
       // 1. Verificar token
       const { userId, companyId } =
@@ -488,7 +497,11 @@ export class AuthService {
         },
       );
 
-      logger.info("Email verificado", { userId });
+      const company = await Company.findByPk(companyId, { attributes: ["id", "name", "slug"] });
+
+      logger.info("Email verificado", { userId, companyId: company?.id, companySlug: company?.slug });
+
+      return company?.slug || "";
     } catch (error) {
       if (error instanceof AuthError) throw error;
       logger.error("Error verificando email:", error);
@@ -742,7 +755,7 @@ export class AuthService {
     if (!to || !fullName || !resetToken || !expiresAt) return;
 
     try {
-      const resetLink = `${config.app.frontendUrl}/reset-password?token=${resetToken}`;
+      const resetLink = `${config.app.frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(to)}`;
       const subject = "Restablece tu contraseña";
       const text = `Hola ${fullName},\n\nPor favor restablece tu contraseña haciendo clic en el siguiente enlace:\n${resetLink}\n\nSi no solicitaste esto, ignora este mensaje.`;
       const html = `<p>Hola ${fullName},</p><p>Por favor restablece tu contraseña haciendo clic en el siguiente enlace:</p><a href="${resetLink}">Restablecer Contraseña</a><p>Si no solicitaste esto, ignora este mensaje.</p>`;

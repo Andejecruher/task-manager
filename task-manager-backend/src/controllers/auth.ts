@@ -276,9 +276,9 @@ export class AuthController {
         throw new AuthError("Token requerido", "VALIDATION_ERROR", 400);
       }
 
-      await authService.verifyEmail(token);
+      const slug = await authService.verifyEmail(token);
 
-      res.apiSuccess(null, "Email verificado exitosamente");
+      res.apiSuccess({ slug }, "Email verificado exitosamente");
     } catch (error) {
       this.handleError(error, res, "verifyEmail");
     }

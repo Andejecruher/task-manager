@@ -75,6 +75,32 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email es requerido")
+    .email("Ingrese un email válido"),
+});
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordBaseSchema = z.object({
+  newPassword: z
+    .string()
+    .min(8, "La contraseña debe tener al menos 8 caracteres")
+    .max(10, "La contraseña no puede exceder 10 caracteres")
+    .regex(/[A-Z]/, "Debe contener al menos una mayúscula")
+    .regex(/[a-z]/, "Debe contener al menos una minúscula")
+    .regex(/\d/, "Debe contener al menos un número")
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, "Debe contener al menos un carácter especial"),
+  confirmPassword: z.string().min(1, "Confirmá tu contraseña"),
+});
+
+export const resetPasswordSchema = resetPasswordBaseSchema.refine(
+  (data) => data.newPassword === data.confirmPassword,
+  { message: "Las contraseñas no coinciden", path: ["confirmPassword"] },
+);
+export type ResetPasswordInput = z.infer<typeof resetPasswordBaseSchema>;
+
 // ── Task ─────────────────────────────────────────────────────────────────────
 export const createTaskSchema = z.object({
   title: z
@@ -99,16 +125,6 @@ export const updateTaskSchema = createTaskSchema
   .partial()
   .omit({ workspaceId: true });
 export type UpdateTaskFormInput = z.infer<typeof updateTaskSchema>;
-
-// ── Reset Password ───────────────────────────────────────────────────────────
-export const resetPasswordSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email es requerido")
-    .email("Ingrese un email válido"),
-});
-
-export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 // ── Profile ──────────────────────────────────────────────────────────────────
 export const profileSchema = z.object({

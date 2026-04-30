@@ -5,7 +5,7 @@ import {
   getMeServices,
   loginServices,
   logoutAllServices,
-  registerServices,
+  registerServices
 } from "@/services/auth";
 import { AuthUser, Company, LoginDTO, RegisterDTO } from "@/types";
 import { useRouter } from "next/navigation";
@@ -31,7 +31,6 @@ interface AuthContextType {
     companySlug?: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
-
   register: (data: RegisterDTO) => Promise<boolean>;
 }
 
@@ -94,7 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } finally {
       setUser(null);
-      router.replace("/login");
+      // obtener el slug de la empresa para redirigir al login correcto
+      const companySlug = user?.company?.slug || window.location.pathname.split("/")[1] || "login";
+      router.replace(`/${companySlug}/login` || "/login");
     }
   }, [router]);
 

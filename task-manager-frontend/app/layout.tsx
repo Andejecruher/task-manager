@@ -1,14 +1,14 @@
+import AppToaster from "@/components/app-toaster"
 import { AuthProvider } from "@/context/auth-context"
 import { ReactQueryProvider } from "@/lib/query-provider"
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import type React from "react"
-import AppToaster from "@/components/app-toaster"
 import "./globals.css"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const geist = Geist({ subsets: ["latin"] })
+const geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "TaskFlow - Project Management",
@@ -29,7 +29,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="font-sans antialiased">
+      <body className={`${geist.className} ${geistMono.className} font-sans antialiased`}>
         <ReactQueryProvider>
           <AuthProvider>
             {children}

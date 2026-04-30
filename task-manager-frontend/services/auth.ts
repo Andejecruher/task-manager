@@ -58,6 +58,47 @@ export async function validateSlug(slug: string, token?: string): Promise<boolea
     .catch((error) => false);
 }
 
+export async function verifyEmailService(token: string): Promise<ApiResponse<{ slug: string }>> {
+  return await axios
+    .post(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-email/${token}`, null, {
+      withCredentials: true,
+    })
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
+export async function requestPasswordResetService(
+  email: string,
+  companySlug: string,
+): Promise<ApiResponse<null>> {
+  return await axios
+    .post(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/request-password-reset`,
+      { email, companySlug },
+    )
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
+export async function resetPasswordService(
+  token: string,
+  newPassword: string,
+): Promise<ApiResponse<null>> {
+  return await axios
+    .post(`${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password`, {
+      token,
+      newPassword,
+    })
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
 export async function logoutAllServices(): Promise<
   ApiResponse<{ revokedCount: number }>
 > {

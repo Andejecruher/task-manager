@@ -4,8 +4,9 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 const PUBLIC_ROUTES = [
     '/',
-    '/login',
     '/register',
+    '/verify-email',
+    '/forgot-password',
 ]
 
 export async function proxy(request: NextRequest) {
@@ -13,30 +14,39 @@ export async function proxy(request: NextRequest) {
 
     const token = request.cookies.get('access_token')?.value ?? undefined
 
-    const isPublic = PUBLIC_ROUTES.includes(pathname)
+    // Verificar si es ruta de login (/:subdominio/login)
+    const pathSegments = pathname.split('/').filter(Boolean)
+    const isLoginRoute = pathSegments.length === 2 && pathSegments[1] === 'login'
+    const isForgotPasswordRoute = pathSegments.length === 2 && pathSegments[1] === 'forgot-password'
+    const isResetPasswordRoute = pathSegments.length === 2 && pathSegments[1] === 'reset-password'
+
+    const isPublic = PUBLIC_ROUTES.includes(pathname) || isLoginRoute || isForgotPasswordRoute || isResetPasswordRoute
 
     // Usuario no autenticado en ruta protegida
     if (!token && !isPublic) {
-        return NextResponse.redirect(new URL('/login', request.url))
+        return NextResponse.redirect(new URL(`/${pathSegments[0]}/login`, request.url))
     }
 
-    // Usuario autenticado intentando ir a login
-    if (token && pathname === '/login') {
-        return NextResponse.redirect(new URL('/', request.url))
-    }
-
-    // Usuario autenticado intentando ir a login
+    // Usuario autenticado intentando ir a register
     if (token && pathname === '/register') {
         return NextResponse.redirect(new URL('/', request.url))
     }
 
-    // Validar slug real para rutas protegidas (ej: /workspace/:id)
-    const domain = pathname.split('/')[1]
+    // Usuario autenticado intentando ir a login de cualquier subdominio
+    if (token && isLoginRoute) {
+        const domain = pathSegments[0]
+        return NextResponse.redirect(new URL(`/${domain}`, request.url))
+    }
 
-    const isValidatingSlug = await validateSlug(domain, token);
+    // Validar slug real para rutas protegidas con subdominio
+    const domain = pathSegments[0]
 
-    if (!isValidatingSlug && !isPublic) {
-        return NextResponse.redirect(new URL('/404', request.url))
+    if (domain && !isPublic) {
+        const isValidatingSlug = await validateSlug(domain, token);
+
+        if (!isValidatingSlug) {
+            return NextResponse.redirect(new URL('/404', request.url))
+        }
     }
 
     return NextResponse.next()

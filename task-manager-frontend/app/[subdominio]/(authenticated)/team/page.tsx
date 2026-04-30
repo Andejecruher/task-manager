@@ -1,16 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useAuth } from "@/context/auth-context";
-import { useTeam } from "@/hooks/use-team";
-import { useTask } from "@/hooks/use-task";
-import { AppSidebar } from "@/components/app-sidebar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -19,31 +12,37 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  UserPlus,
-  MoreVertical,
-  Mail,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useAuth } from "@/context/auth-context";
+import { useTask } from "@/hooks/use-task";
+import { useTeam } from "@/hooks/use-team";
+import type { UserRole } from "@/lib/types";
+import { format } from "date-fns";
+import {
   Calendar,
   Crown,
+  Mail,
+  MoreVertical,
   Shield,
-  UserIcon,
   Trash2,
+  UserIcon,
+  UserPlus,
 } from "lucide-react";
-import { format } from "date-fns";
-import type { UserRole } from "@/lib/types";
+import { useState } from "react";
 
 // Función para normalizar el rol
 const normalizeRole = (role: string | undefined): string => {
@@ -178,21 +177,19 @@ export default function TeamPage() {
 
   if (!companyId) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <AppSidebar />
-        <main className="flex-1 p-8">
+      <section className="flex min-h-screen bg-background">
+        <div className="flex-1 p-8">
           <div className="text-center text-muted-foreground">
             Loading company information...
           </div>
-        </main>
-      </div>
+        </div>
+      </section>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <AppSidebar />
-      <main className="flex-1 p-8">
+    <section className="flex min-h-screen bg-background">
+      <div className="flex-1 p-8">
         <div className="max-w-6xl mx-auto space-y-8">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -442,7 +439,7 @@ export default function TeamPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+      </div>
+    </section>
   );
 }

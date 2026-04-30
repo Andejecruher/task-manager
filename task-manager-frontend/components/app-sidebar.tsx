@@ -46,11 +46,11 @@ export function AppSidebar() {
   };
 
   const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Workspaces", href: "/workspaces", icon: Layers },
-    { name: "Team", href: "/team", icon: Users },
-    { name: "Profile", href: "/profile", icon: User },
-    { name: "Settings", href: "/settings", icon: Settings },
+    { name: "Dashboard", href: `/${user?.company?.slug}/dashboard`, icon: LayoutDashboard },
+    { name: "Workspaces", href: `/${user?.company?.slug}/workspaces`, icon: Layers },
+    { name: "Team", href: `/${user?.company?.slug}/team`, icon: Users },
+    { name: "Profile", href: `/${user?.company?.slug}/profile`, icon: User },
+    { name: "Settings", href: `/${user?.company?.slug}/settings`, icon: Settings },
   ];
 
   const isActive = (href: string) => {

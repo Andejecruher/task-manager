@@ -16,13 +16,18 @@ import { useAuth } from "@/context/auth-context";
 import { loginSchema, type LoginInput } from "@/lib/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, CheckSquare, Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 export default function LoginPage() {
+  const pathname = usePathname();
   const { login, user } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+
+  const domain = pathname.split("/")[1] || "";
 
   const {
     register,
@@ -32,7 +37,7 @@ export default function LoginPage() {
     watch,
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: "", password: "", companySlug: domain },
   });
 
   const watchedPassword = watch("password");
@@ -128,25 +133,14 @@ export default function LoginPage() {
                   {errors.password.message}
                 </p>
               )}
-            </div>
-
-            {/* Company Slug */}
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Company Slug</Label>
-              <div className="relative">
-                <Input
-                  id="companySlug"
-                  type={"text"}
-                  autoComplete="current-password"
-                  {...register("companySlug")}
-                  className="pr-10"
-                />
+              <div className="flex justify-end">
+                <Link
+                  href={`/${domain}/forgot-password${watch("email") ? `?email=${encodeURIComponent(watch("email"))}` : ""}`}
+                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
               </div>
-              {errors.companySlug && (
-                <p className="text-xs text-destructive">
-                  {errors.companySlug.message}
-                </p>
-              )}
             </div>
 
             {/* Root error */}

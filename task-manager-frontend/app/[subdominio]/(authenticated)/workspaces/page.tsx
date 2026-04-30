@@ -57,17 +57,6 @@ export default function WorkspacesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Workspace | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Función para generar slug desde el nombre
-  const generateSlug = (text: string): string => {
-    return text
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
-  };
-
   const handleSelectWorkspace = (id: string) => {
     setWorkspaceId(id);
     router.push(`/${user?.company?.slug}/workspaces/${id}`);

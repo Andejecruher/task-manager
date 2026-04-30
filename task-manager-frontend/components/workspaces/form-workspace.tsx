@@ -49,7 +49,10 @@ export default function FormWorkspace({ open, workspace, setOpen, setWorkspace, 
 
         setIsCreating(true);
         try {
-            await handleSave(workspace);
+            await handleSave({
+                ...workspace,
+                slug: generateSlug(workspace.name),
+            });
             setOpen(false);
         } catch (error) {
             console.error("Error saving workspace:", error);
@@ -73,9 +76,9 @@ export default function FormWorkspace({ open, workspace, setOpen, setWorkspace, 
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{workspace ? "Edit Workspace" : "Create New Workspace"}</DialogTitle>
+                    <DialogTitle>{workspace.id ? "Edit Workspace" : "Create New Workspace"}</DialogTitle>
                     <DialogDescription>
-                        Enter the details for your {workspace ? "workspace" : "new workspace"}.
+                        Enter the details for your {workspace.id ? "workspace" : "new workspace"}.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -180,7 +183,7 @@ export default function FormWorkspace({ open, workspace, setOpen, setWorkspace, 
                         Cancel
                     </Button>
                     <Button disabled={isCreating} onClick={handleSubmit}>
-                        {isCreating ? (workspace ? "Updating..." : "Creating...") : (workspace ? "Update" : "Create")}
+                        {isCreating ? (workspace.id ? "Updating..." : "Creating...") : (workspace.id ? "Update" : "Create")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

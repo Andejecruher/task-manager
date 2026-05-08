@@ -82,3 +82,30 @@ export async function deleteWorkspace(id: string): Promise<ApiResponse> {
       throw error.response?.data;
     });
 }
+
+export async function addWorkspaceMember(
+  workspaceId: string,
+  data: {
+    email: string;
+    name: string;
+    role: "Owner" | "Admin" | "User";
+  },
+): Promise<ApiResponse> {
+  return await authApiClient
+    .post(`/workspace/${workspaceId}/members`, data)
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
+export async function getWorkspaceMembers(
+  workspaceId: string,
+): Promise<ApiResponse<{ members: any[] }>> {
+  return await authApiClient
+    .get(`/workspace/${workspaceId}/members`)
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}

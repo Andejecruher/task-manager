@@ -42,6 +42,7 @@ import {
   UserIcon,
   UserPlus,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 // Función para normalizar el rol
@@ -51,13 +52,16 @@ const normalizeRole = (role: string | undefined): string => {
 };
 
 export default function TeamPage() {
-  //Solo auth para el usuario actual
+  // ✅ Obtener workspaceId de la URL (query param)
+  const searchParams = useSearchParams();
+  const workspaceId = searchParams.get("workspaceId") || undefined;
+
+  // Solo auth para el usuario actual
   const { user: currentUser } = useAuth();
 
-  //Hook de equipo (toda la lógica CRUD)
-  const companyId = currentUser?.company?.id;
+  // Hook de equipo (toda la lógica CRUD)
   const { users, loading, addUser, updateUserRole, deleteUser } =
-    useTeam(companyId);
+    useTeam(workspaceId);
 
   // Hook de tareas para estadísticas
   const { tasks } = useTask();
@@ -175,12 +179,12 @@ export default function TeamPage() {
   const canManageUsers =
     currentUserRole === "owner" || currentUserRole === "admin";
 
-  if (!companyId) {
+  if (!workspaceId) {
     return (
       <section className="flex min-h-screen bg-background">
         <div className="flex-1 p-8">
           <div className="text-center text-muted-foreground">
-            Loading company information...
+            Loading workspace...
           </div>
         </div>
       </section>
@@ -245,7 +249,7 @@ export default function TeamPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="User">User</SelectItem>
+                          <SelectItem value="User">Member</SelectItem>
                           <SelectItem value="Admin">Admin</SelectItem>
                           {currentUserRole === "owner" && (
                             <SelectItem value="owner">Owner</SelectItem>

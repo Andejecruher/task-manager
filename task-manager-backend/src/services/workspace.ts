@@ -688,12 +688,12 @@ class WorkspaceService {
         notification_settings: member.notification_settings,
         user: member.user
           ? {
-            id: member.user.id,
-            email: member.user.email,
-            full_name: member.user.full_name,
-            avatar_url: member.user.avatar_url,
-            is_active: member.user.is_active,
-          }
+              id: member.user.id,
+              email: member.user.email,
+              full_name: member.user.full_name,
+              avatar_url: member.user.avatar_url,
+              is_active: member.user.is_active,
+            }
           : undefined,
       }));
 
@@ -733,10 +733,11 @@ class WorkspaceService {
     companyId: string,
     invitedBy: string,
     email: string,
+    name: string,
     role = "member",
   ) {
     try {
-      //  Verificar que el workspace existe
+      // Verificar que el workspace existe
       const workspace = await Workspace.findOne({
         where: {
           id: workspaceId,
@@ -763,7 +764,7 @@ class WorkspaceService {
 
       const isOwner = inviter?.role === UserRole.OWNER;
       const isAdmin = inviter?.role === UserRole.ADMIN;
-      const isWorkspaceAdmin = isInviterMember?.role === UserRole.ADMIN;
+      const isWorkspaceAdmin = isInviterMember?.role === "admin";
 
       // Solo pueden invitar: owner, admin de compañía, o admin del workspace
       if (!isOwner && !isAdmin && !isWorkspaceAdmin) {
@@ -774,24 +775,43 @@ class WorkspaceService {
         );
       }
 
+      // Mapear rol del frontend al modelo de DB
+      const roleMap: Record<string, "admin" | "member" | "viewer"> = {
+        Owner: "admin",
+        Admin: "admin",
+        User: "member",
+      };
+      const mappedRole = roleMap[role] || "member";
+
       // Buscar el usuario por email
-      const user = await User.findOne({
+      let user = await User.findOne({
         where: {
           email: email,
-          company_id: companyId, // Misma compañía
+          company_id: companyId,
         },
       });
 
+      // Si no existe el usuario, crearlo con los campos correctos
       if (!user) {
-        throw new AuthError(
-          "No existe un usuario con ese email en tu compañía",
-          "USER_NOT_FOUND",
-          404,
-        );
+        user = await User.create({
+          id: uuidv4(),
+          email: email,
+          full_name: name,
+          company_id: companyId,
+          is_active: true,
+          email_verified: false,
+          role: UserRole.MEMBER,
+          password_hash: "",
+          permissions: [],
+          failed_login_attempts: 0,
+          mfa_enabled: false,
+          is_onboarded: false,
+          timezone: "UTC",
+          locale: "es-ES",
+        });
       }
 
-      //  Verificar que no sea el mismo usuario
-
+      // Verificar que no sea el mismo usuario
       if (user.id === invitedBy) {
         throw new AuthError(
           "No puedes invitarte a ti mismo",
@@ -806,13 +826,13 @@ class WorkspaceService {
           workspace_id: workspaceId,
           user_id: user.id,
         },
-        paranoid: false, // Incluir eliminados
+        paranoid: false,
       });
 
       if (existingMember) {
         if (existingMember.deleted_at) {
           throw new AuthError(
-            "El usuario ya fue miembro pero está eliminado. Restaura su membresía o usa otro email",
+            "El usuario ya fue miembro pero está eliminado. Restaura su membresía",
             "MEMBER_DELETED",
             409,
           );
@@ -824,43 +844,44 @@ class WorkspaceService {
         );
       }
 
-      // Crear el miembro
+      // Crear el miembro con el rol mapeado
       const newMember = await WorkspaceMember.create({
         id: uuidv4(),
         workspace_id: workspaceId,
         user_id: user.id,
         company_id: companyId,
-        role: role as "admin" | "member" | "viewer",
+        role: mappedRole,
         joined_at: new Date(),
         invited_by: invitedBy,
         invited_at: new Date(),
+        permissions: {},
+        notification_settings: {
+          email: true,
+          push: true,
+          inApp: true,
+          mentions: true,
+          dailyDigest: false,
+        },
       });
 
       // Actualizar contador de miembros
       await workspace.increment("member_count");
 
-      //  Logging
       logger.info("Miembro agregado", {
         workspaceId,
         userId: user.id,
         invitedBy,
-        role,
+        role: mappedRole,
       });
 
-      // PASO 9: Retornar miembro creado
+      // Retornar con el rol original del frontend
       return {
-        id: newMember.id,
-        workspace_id: newMember.workspace_id,
-        user_id: newMember.user_id,
-        role: newMember.role,
-        joined_at: newMember.joined_at,
-        invited_by: newMember.invited_by,
-        user: {
-          id: user.id,
-          email: user.email,
-          full_name: user.full_name,
-          avatar_url: user.avatar_url,
-        },
+        id: user.id,
+        name: user.full_name,
+        email: user.email,
+        role: role,
+        createdAt: newMember.joined_at,
+        workspaceId: workspaceId,
       };
     } catch (error) {
       if (error instanceof AuthError) {
@@ -871,9 +892,7 @@ class WorkspaceService {
     }
   }
 
-  async getTasksByWorkspaceId(
-    workspaceId: string,
-  ) {
+  async getTasksByWorkspaceId(workspaceId: string) {
     try {
       const tasks = await Task.findAll({
         where: {
@@ -886,7 +905,11 @@ class WorkspaceService {
         throw error;
       }
       logger.error("Error obteniendo tareas del workspace:", error);
-      throw new AuthError("Error al obtener tareas del workspace", "GET_TASKS_ERROR", 500);
+      throw new AuthError(
+        "Error al obtener tareas del workspace",
+        "GET_TASKS_ERROR",
+        500,
+      );
     }
   }
 }

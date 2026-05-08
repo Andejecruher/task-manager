@@ -1,4 +1,4 @@
-// hooks/use-team.ts
+// hooks/use-team.ts - MODIFICADO
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -11,25 +11,34 @@ export interface TeamMember {
   name: string;
   email: string;
   role: UserRole;
-  companyId: string;
+  workspaceId: string;
   createdAt: string;
   avatar?: string;
 }
 
-export function useTeam(companyId: string | undefined) {
+export function useTeam(workspaceId: string | undefined) {
   const [users, setUsers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Cargar usuarios del equipo
+  // Cargar usuarios del workspace
   const loadUsers = useCallback(async () => {
-    if (!companyId) {
+    if (!workspaceId) {
+      console.log("❌ No workspaceId provided");
       return;
     }
 
     try {
       setLoading(true);
-      const response = await authApiClient.get(`/company/${companyId}/users`);
-      const userList = response.data.data || [];
+      console.log("📥 Loading members for workspace:", workspaceId);
+
+      const response = await authApiClient.get(`/workspace/members`, {
+        params: { workspaceId: workspaceId },
+      });
+
+      console.log("📥 Response:", response.data);
+
+      const userList =
+        response.data.data || response.data.members || response.data || [];
       setUsers(userList);
     } catch (error) {
       console.error("Error loading users:", error);
@@ -37,41 +46,57 @@ export function useTeam(companyId: string | undefined) {
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  }, [workspaceId]);
 
   // Agregar usuario
   const addUser = useCallback(
     async (data: { email: string; name: string; role: UserRole }) => {
-      if (!companyId) {
-        toast.error("No company selected");
+      console.log("🔍 addUser - workspaceId recibido:", workspaceId);
+
+      if (!workspaceId) {
+        toast.error("No workspace selected");
+        console.log("❌ workspaceId es undefined");
         return;
       }
 
       try {
         setLoading(true);
-        await authApiClient.post(`/company/${companyId}/users`, {
+        console.log("📤 POST /workspace/${workspaceId}/members", {
           email: data.email,
           name: data.name,
           role: data.role,
         });
+
+        await authApiClient.post(`/workspace/${workspaceId}/members`, {
+          email: data.email,
+          name: data.name,
+          role: data.role,
+        });
+
         toast.success("User added successfully");
         await loadUsers();
       } catch (error: any) {
-        console.error("Error adding user:", error);
+        console.error("❌ Error adding user:", error);
+        console.error("❌ Response:", error.response?.data);
         toast.error(error.response?.data?.message || "Failed to add user");
       } finally {
         setLoading(false);
       }
     },
-    [companyId, loadUsers],
+    [workspaceId, loadUsers],
   );
 
   // Actualizar rol
   const updateUserRole = useCallback(
     async (userId: string, role: UserRole) => {
+      if (!workspaceId) return;
+
       try {
         setLoading(true);
-        await authApiClient.patch(`/users/${userId}/role`, { role });
+        await authApiClient.patch(`/workspace/members/${userId}`, {
+          role: role.toLowerCase(),
+          workspaceId: workspaceId,
+        });
         toast.success("Role updated successfully");
         await loadUsers();
       } catch (error: any) {
@@ -81,15 +106,20 @@ export function useTeam(companyId: string | undefined) {
         setLoading(false);
       }
     },
-    [loadUsers],
+    [workspaceId, loadUsers],
   );
 
+  //aun no se implementan
   // Eliminar usuario
   const deleteUser = useCallback(
     async (userId: string) => {
+      if (!workspaceId) return;
+
       try {
         setLoading(true);
-        await authApiClient.delete(`/users/${userId}`);
+        await authApiClient.delete(`/workspace/members/${userId}`, {
+          data: { workspaceId: workspaceId },
+        });
         toast.success("User removed successfully");
         await loadUsers();
       } catch (error: any) {
@@ -99,14 +129,14 @@ export function useTeam(companyId: string | undefined) {
         setLoading(false);
       }
     },
-    [loadUsers],
+    [workspaceId, loadUsers],
   );
 
   useEffect(() => {
-    if (companyId) {
+    if (workspaceId) {
       loadUsers();
     }
-  }, [companyId, loadUsers]);
+  }, [workspaceId, loadUsers]);
 
   return {
     users,

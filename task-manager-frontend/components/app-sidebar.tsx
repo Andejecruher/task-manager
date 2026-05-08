@@ -1,3 +1,4 @@
+// components/app-sidebar.tsx
 "use client";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -17,12 +18,34 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { authApiClient } from "@/lib/api";
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [workspaceId, setWorkspaceId] = useState<string>("");
+
+  // Obtener el primer workspace del usuario
+  useEffect(() => {
+    async function getFirstWorkspace() {
+      if (!user?.company?.slug) return;
+      try {
+        const response = await authApiClient.get("/workspace");
+        const workspaces =
+          response.data.data?.workspaces || response.data?.workspaces || [];
+        if (workspaces.length > 0) {
+          setWorkspaceId(workspaces[0].id);
+        }
+        console.log("✅ workspaceId seteado:", workspaces[0].id);
+        console.log("🔍 workspaceId actual:", workspaceId);
+      } catch (error) {
+        console.error("Error fetching workspaces:", error);
+      }
+    }
+    getFirstWorkspace();
+  }, [user?.company?.slug]);
 
   useEffect(() => {
     const saved = localStorage.getItem("theme") as "light" | "dark" | null;
@@ -39,23 +62,40 @@ export function AppSidebar() {
     document.documentElement.classList.toggle("dark", next === "dark");
   };
 
-  //función para manejar el cierre de sesión con estado de carga
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await logout();
   };
 
   const navigation = [
-    { name: "Dashboard", href: `/${user?.company?.slug}/dashboard`, icon: LayoutDashboard },
-    { name: "Workspaces", href: `/${user?.company?.slug}/workspaces`, icon: Layers },
-    { name: "Team", href: `/${user?.company?.slug}/team`, icon: Users },
+    {
+      name: "Dashboard",
+      href: `/${user?.company?.slug}/dashboard`,
+      icon: LayoutDashboard,
+    },
+    {
+      name: "Workspaces",
+      href: `/${user?.company?.slug}/workspaces`,
+      icon: Layers,
+    },
+    {
+      name: "Team",
+      href: `/${user?.company?.slug}/team?workspaceId=${workspaceId}`, // ✅ Con workspaceId
+      icon: Users,
+    },
     { name: "Profile", href: `/${user?.company?.slug}/profile`, icon: User },
-    { name: "Settings", href: `/${user?.company?.slug}/settings`, icon: Settings },
+    {
+      name: "Settings",
+      href: `/${user?.company?.slug}/settings`,
+      icon: Settings,
+    },
   ];
 
   const isActive = (href: string) => {
-    if (href === `/${user?.company?.slug}/workspaces`)
+    if (href.includes("/workspaces"))
       return pathname.startsWith(`/${user?.company?.slug}/workspaces`);
+    if (href.includes("/team"))
+      return pathname.startsWith(`/${user?.company?.slug}/team`);
     return pathname === href;
   };
 

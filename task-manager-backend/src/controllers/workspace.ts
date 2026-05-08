@@ -1,6 +1,8 @@
-import { AuthError, AuthRequest } from "@/types";
+import { AuthError, AuthRequest, UserRole } from "@/types";
+
 import { logger } from "@/utils/logger";
 import { plainToClass } from "class-transformer";
+
 import {
   IsBoolean,
   IsEmail,
@@ -135,12 +137,17 @@ class AddMemberDTO {
   @IsNotEmpty({ message: "El email es requerido" })
   email!: string;
 
+  @IsString({ message: "El nombre es requerido" })
+  @IsNotEmpty({ message: "El nombre es requerido" })
+  @MaxLength(100, { message: "El nombre no puede exceder 100 caracteres" })
+  name!: string;
+
   @IsString({ message: "El rol debe ser un texto" })
-  @IsIn(["admin", "member", "viewer"], {
-    message: "El rol debe ser: admin, member o viewer",
+  @IsIn(["Owner", "Admin", "User"], {
+    message: "El rol debe ser: Owner, Admin o User",
   })
-  @IsOptional()
-  role?: string;
+  @IsNotEmpty({ message: "El rol es requerido" })
+  role!: string;
 }
 
 export class WorkspaceController {
@@ -530,7 +537,7 @@ export class WorkspaceController {
         return res.status(400).apiValidationError(paramsErrors);
       }
 
-      // 2. Validar body (email y rol)
+      // 2. Validar body (email, name, role)
       const bodyDto = plainToClass(AddMemberDTO, req.body);
       const bodyErrors = await validate(bodyDto);
       if (bodyErrors.length > 0) {
@@ -538,21 +545,45 @@ export class WorkspaceController {
       }
 
       const authReq = req as AuthRequest;
+      const currentUserRole = authReq.user?.role; // Esto es de tipo UserRole
 
-      // 3. Llamar al servicio
+      // 3. Validaciones de permisos - Usando el enum UserRole
+      if (
+        !currentUserRole ||
+        (currentUserRole !== UserRole.OWNER &&
+          currentUserRole !== UserRole.ADMIN)
+      ) {
+        throw new AuthError(
+          "Only Owners and Admins can add team members",
+          "FORBIDDEN",
+          403,
+        );
+      }
+
+      // 4. Solo Owner puede asignar rol Owner
+      if (bodyDto.role === "Owner" && currentUserRole !== UserRole.OWNER) {
+        throw new AuthError(
+          "Only the Owner can assign the Owner role",
+          "FORBIDDEN",
+          403,
+        );
+      }
+
+      // 5. Llamar al servicio
       const result = await workspaceService.addMember(
-        paramsDto.id, // ID del workspace
-        authReq.company.id, // ID de la compañía
-        authReq.user.id, // ID de quien invita
-        bodyDto.email, // Email del nuevo miembro
-        bodyDto.role || "member", // Rol (por defecto "member")
+        paramsDto.id,
+        authReq.company.id,
+        authReq.user.id,
+        bodyDto.email,
+        bodyDto.name,
+        bodyDto.role, // "Owner", "Admin", "User"
       );
 
       return res
         .status(201)
         .apiSuccess(result, "Miembro agregado exitosamente");
     } catch (error) {
-      logger.error("Error adding member:", error);
+      logger.error("Error adding workspace member:", error);
       if (error instanceof AuthError) {
         return res
           .status(error.statusCode)

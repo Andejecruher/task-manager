@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { authApiClient } from "@/lib/api";
 import { toast } from "sonner";
 import type { UserRole } from "@/lib/types";
+import { addWorkspaceMember, getWorkspaceMembers } from "@/services/workspace";
 
 export interface TeamMember {
   id: string;
@@ -31,7 +32,7 @@ export function useTeam(workspaceId: string | undefined) {
       setLoading(true);
       console.log("📥 Loading members for workspace:", workspaceId);
 
-      const response = await authApiClient.get(`/workspace/members`, {
+      const response = await authApiClient.get(`/workspace/wmembers`, {
         params: { workspaceId: workspaceId },
       });
 
@@ -61,12 +62,6 @@ export function useTeam(workspaceId: string | undefined) {
 
       try {
         setLoading(true);
-        console.log("📤 POST /workspace/${workspaceId}/members", {
-          email: data.email,
-          name: data.name,
-          role: data.role,
-        });
-
         await authApiClient.post(`/workspace/${workspaceId}/members`, {
           email: data.email,
           name: data.name,

@@ -1,5 +1,6 @@
 "use client";
 
+import { UserWorkspacesSheet } from "@/components/team/user-workspaces-sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,12 +30,13 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/context/auth-context";
 import { useTask } from "@/hooks/use-task";
-import { useTeam } from "@/hooks/use-team";
+import { TeamMember, useTeam } from "@/hooks/use-team";
 import type { UserRole } from "@/lib/types";
 import { format } from "date-fns";
 import {
   Calendar,
   Crown,
+  Layers,
   Mail,
   MoreVertical,
   Shield,
@@ -61,7 +63,7 @@ export default function TeamPage() {
 
   // Hook de equipo (toda la lógica CRUD)
   const { users, loading, addUser, updateUserRole, deleteUser } =
-    useTeam(workspaceId);
+    useTeam();
 
   // Hook de tareas para estadísticas
   const { tasks } = useTask();
@@ -71,8 +73,15 @@ export default function TeamPage() {
   const [newUserName, setNewUserName] = useState("");
   const [newUserRole, setNewUserRole] = useState<UserRole>("User");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<TeamMember | null>(null);
+  const [workspacesSheetOpen, setWorkspacesSheetOpen] = useState(false);
 
   const currentUserRole = currentUser?.user?.role;
+
+  const handleOpenWorkspacesSheet = (member: TeamMember) => {
+    setSelectedUser(member);
+    setWorkspacesSheetOpen(true);
+  };
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,7 +188,7 @@ export default function TeamPage() {
   const canManageUsers =
     currentUserRole === "owner" || currentUserRole === "admin";
 
-  if (!workspaceId) {
+  if (!users) {
     return (
       <section className="flex min-h-screen bg-background">
         <div className="flex-1 p-8">
@@ -294,6 +303,8 @@ export default function TeamPage() {
                   {users.map((member) => {
                     const stats = getUserTaskStats(member.id);
                     const isCurrentUser = member.id === currentUser?.user?.id;
+                    const displayName = member.full_name ?? member.name ?? member.email ?? "—";
+                    const joinedDate = member.created_at ?? member.createdAt;
                     return (
                       <div
                         key={member.id}
@@ -301,14 +312,14 @@ export default function TeamPage() {
                       >
                         <Avatar className="h-12 w-12">
                           <AvatarFallback className="bg-blue-600 text-white text-lg">
-                            {member.name.charAt(0).toUpperCase()}
+                            {displayName.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold truncate">
-                              {member.name}
+                              {displayName}
                               {isCurrentUser && (
                                 <span className="text-muted-foreground text-sm ml-2">
                                   (You)
@@ -317,11 +328,11 @@ export default function TeamPage() {
                             </h3>
                             <Badge
                               variant="outline"
-                              className={getRoleBadgeColor(member.role)}
+                              className={getRoleBadgeColor(member.role as UserRole)}
                             >
                               <span className="flex items-center gap-1">
-                                {getRoleIcon(member.role)}
-                                {member.role}
+                                {getRoleIcon(member.role as UserRole)}
+                                {normalizeRole(member.role)}
                               </span>
                             </Badge>
                           </div>
@@ -330,14 +341,13 @@ export default function TeamPage() {
                               <Mail className="h-3 w-3" />
                               {member.email}
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              Joined{" "}
-                              {format(
-                                new Date(member.createdAt),
-                                "MMM d, yyyy",
-                              )}
-                            </div>
+                            {joinedDate && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                Joined{" "}
+                                {format(new Date(joinedDate), "MMM d, yyyy")}
+                              </div>
+                            )}
                           </div>
                           <div className="mt-2 text-sm">
                             <span className="text-muted-foreground">
@@ -350,50 +360,61 @@ export default function TeamPage() {
                         </div>
 
                         {canManageUsers && !isCurrentUser && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleRoleChange(member.id, "User")
-                                }
-                              >
-                                Change to User
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleRoleChange(member.id, "Admin")
-                                }
-                              >
-                                Change to Admin
-                              </DropdownMenuItem>
-                              {currentUserRole === "owner" && (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1.5 text-xs"
+                              onClick={() => handleOpenWorkspacesSheet(member)}
+                            >
+                              <Layers className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Workspaces</span>
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
                                 <DropdownMenuItem
                                   onClick={() =>
-                                    handleRoleChange(member.id, "Owner")
+                                    handleRoleChange(member.id, "User")
                                   }
                                 >
-                                  Change to Owner
+                                  Change to User
                                 </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => handleDeleteUser(member.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Remove member
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleRoleChange(member.id, "Admin")
+                                  }
+                                >
+                                  Change to Admin
+                                </DropdownMenuItem>
+                                {currentUserRole === "owner" && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleRoleChange(member.id, "Owner")
+                                    }
+                                  >
+                                    Change to Owner
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => handleDeleteUser(member.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Remove member
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         )}
                       </div>
                     );
@@ -444,6 +465,15 @@ export default function TeamPage() {
           </Card>
         </div>
       </div>
+
+      <UserWorkspacesSheet
+        user={selectedUser}
+        open={workspacesSheetOpen}
+        onOpenChange={(v) => {
+          setWorkspacesSheetOpen(v);
+          if (!v) setSelectedUser(null);
+        }}
+      />
     </section>
   );
 }

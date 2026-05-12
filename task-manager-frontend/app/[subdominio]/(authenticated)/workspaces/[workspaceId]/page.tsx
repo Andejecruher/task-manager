@@ -7,13 +7,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ManageMembersSheet } from "@/components/workspace-members/manage-members-sheet";
 import { useAuth } from "@/context/auth-context";
 import { useTask } from "@/hooks/use-task";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { STATUS_LABELS, STATUS_ORDER } from "@/lib/schemas";
 import type { TaskStatus } from "@/lib/types";
 import type { Task } from "@/types/task";
-import { AlertCircle, ArrowLeft, Plus, Search } from "lucide-react";
+import { AlertCircle, ArrowLeft, Plus, Search, Users2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -33,6 +34,7 @@ export default function WorkspaceBoardPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [membersSheetOpen, setMembersSheetOpen] = useState(false);
 
   useEffect(() => {
     if (workspaceId && !hasLoaded.current) {
@@ -143,6 +145,15 @@ export default function WorkspaceBoardPage() {
             {workspaceTasks.length}{" "}
             {workspaceTasks.length === 1 ? "task" : "tasks"}
           </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setMembersSheetOpen(true)}
+          >
+            <Users2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Miembros</span>
+          </Button>
           <CreateTaskDialog workspaceId={workspaceId} />
         </div>
 
@@ -206,6 +217,13 @@ export default function WorkspaceBoardPage() {
         task={selectedTask}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+      />
+
+      <ManageMembersSheet
+        workspaceId={workspaceId}
+        workspaceName={workspace?.name ?? workspaceId}
+        open={membersSheetOpen}
+        onOpenChange={setMembersSheetOpen}
       />
     </>
   );

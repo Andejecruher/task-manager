@@ -99,6 +99,41 @@ export async function addWorkspaceMember(
     });
 }
 
+export async function getWorkspaceUsers(
+  workspaceId: string,
+): Promise<ApiResponse<{ assigned: unknown[]; available: unknown[] }>> {
+  return await authApiClient
+    .get(`/workspace/${workspaceId}/users`)
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
+export async function assignUsersToWorkspace(
+  workspaceId: string,
+  userIds: string[],
+): Promise<ApiResponse<{ assigned: number }>> {
+  return await authApiClient
+    .post(`/workspace/${workspaceId}/assign`, { userIds })
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
+export async function unassignUsersFromWorkspace(
+  workspaceId: string,
+  userIds: string[],
+): Promise<ApiResponse<{ removed: number }>> {
+  return await authApiClient
+    .delete(`/workspace/${workspaceId}/unassign`, { data: { userIds } })
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
 export async function getWorkspaceMembers(
   workspaceId: string,
 ): Promise<ApiResponse<{ members: any[] }>> {

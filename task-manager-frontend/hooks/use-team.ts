@@ -1,137 +1,76 @@
-// hooks/use-team.ts - MODIFICADO
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { authApiClient } from "@/lib/api";
-import { toast } from "sonner";
 import type { UserRole } from "@/lib/types";
-import { addWorkspaceMember, getWorkspaceMembers } from "@/services/workspace";
+import { getCompanyUsers } from "@/services/user";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface TeamMember {
   id: string;
-  name: string;
+  name?: string;
+  full_name?: string;
   email: string;
-  role: UserRole;
-  workspaceId: string;
-  createdAt: string;
+  role: string;
+  avatar_url?: string;
   avatar?: string;
+  is_active?: boolean;
+  createdAt?: string;
+  created_at?: string;
 }
 
-export function useTeam(workspaceId: string | undefined) {
-  const [users, setUsers] = useState<TeamMember[]>([]);
-  const [loading, setLoading] = useState(false);
+export function useTeam() {
+  const queryClient = useQueryClient();
 
-  // Cargar usuarios del workspace
-  const loadUsers = useCallback(async () => {
-    if (!workspaceId) {
-      console.log("❌ No workspaceId provided");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log("📥 Loading members for workspace:", workspaceId);
-
-      const response = await authApiClient.get(`/workspace/wmembers`, {
-        params: { workspaceId: workspaceId },
-      });
-
-      console.log("📥 Response:", response.data);
-
-      const userList =
-        response.data.data || response.data.members || response.data || [];
-      setUsers(userList);
-    } catch (error) {
-      console.error("Error loading users:", error);
-      toast.error("Failed to load team members");
-    } finally {
-      setLoading(false);
-    }
-  }, [workspaceId]);
-
-  // Agregar usuario
-  const addUser = useCallback(
-    async (data: { email: string; name: string; role: UserRole }) => {
-      console.log("🔍 addUser - workspaceId recibido:", workspaceId);
-
-      if (!workspaceId) {
-        toast.error("No workspace selected");
-        console.log("❌ workspaceId es undefined");
-        return;
-      }
-
-      try {
-        setLoading(true);
-        await authApiClient.post(`/workspace/${workspaceId}/members`, {
-          email: data.email,
-          name: data.name,
-          role: data.role,
-        });
-
-        toast.success("User added successfully");
-        await loadUsers();
-      } catch (error: any) {
-        console.error("❌ Error adding user:", error);
-        console.error("❌ Response:", error.response?.data);
-        toast.error(error.response?.data?.message || "Failed to add user");
-      } finally {
-        setLoading(false);
-      }
+  const { data, isLoading: loading } = useQuery<TeamMember[]>({
+    queryKey: ["company-users"],
+    queryFn: async () => {
+      const response = await getCompanyUsers();
+      if (!response.success) return [];
+      return (response.data as TeamMember[]) ?? [];
     },
-    [workspaceId, loadUsers],
-  );
+    staleTime: 30_000,
+  });
 
-  // Actualizar rol
-  const updateUserRole = useCallback(
-    async (userId: string, role: UserRole) => {
-      if (!workspaceId) return;
+  const users: TeamMember[] = data ?? [];
 
-      try {
-        setLoading(true);
-        await authApiClient.patch(`/workspace/members/${userId}`, {
-          role: role.toLowerCase(),
-          workspaceId: workspaceId,
-        });
-        toast.success("Role updated successfully");
-        await loadUsers();
-      } catch (error: any) {
-        console.error("Error updating role:", error);
-        toast.error(error.response?.data?.message || "Failed to update role");
-      } finally {
-        setLoading(false);
-      }
+  const addUserMutation = useMutation({
+    mutationFn: (payload: { email: string; name: string; role: UserRole }) =>
+      authApiClient.post("/user", {
+        email: payload.email,
+        fullName: payload.name,
+        role: payload.role.toLowerCase(),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-users"] });
     },
-    [workspaceId, loadUsers],
-  );
+  });
 
-  //aun no se implementan
-  // Eliminar usuario
-  const deleteUser = useCallback(
-    async (userId: string) => {
-      if (!workspaceId) return;
-
-      try {
-        setLoading(true);
-        await authApiClient.delete(`/workspace/members/${userId}`, {
-          data: { workspaceId: workspaceId },
-        });
-        toast.success("User removed successfully");
-        await loadUsers();
-      } catch (error: any) {
-        console.error("Error deleting user:", error);
-        toast.error(error.response?.data?.message || "Failed to remove user");
-      } finally {
-        setLoading(false);
-      }
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: UserRole }) =>
+      authApiClient.patch(`/user/${userId}/rol`, { role: role.toLowerCase() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-users"] });
     },
-    [workspaceId, loadUsers],
-  );
+  });
 
-  useEffect(() => {
-    if (workspaceId) {
-      loadUsers();
-    }
-  }, [workspaceId, loadUsers]);
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId: string) => authApiClient.delete(`/user/${userId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-users"] });
+    },
+  });
+
+  const addUser = async (data: { email: string; name: string; role: UserRole }) => {
+    await addUserMutation.mutateAsync(data);
+  };
+
+  const updateUserRole = async (userId: string, role: UserRole) => {
+    await updateRoleMutation.mutateAsync({ userId, role });
+  };
+
+  const deleteUser = async (userId: string) => {
+    await deleteUserMutation.mutateAsync(userId);
+  };
 
   return {
     users,
@@ -139,6 +78,6 @@ export function useTeam(workspaceId: string | undefined) {
     addUser,
     updateUserRole,
     deleteUser,
-    refreshUsers: loadUsers,
   };
 }
+

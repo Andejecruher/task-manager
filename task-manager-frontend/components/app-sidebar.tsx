@@ -18,34 +18,33 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { authApiClient } from "@/lib/api";
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [workspaceId, setWorkspaceId] = useState<string>("");
+  // const [workspaceId, setWorkspaceId] = useState<string>("");
 
-  // Obtener el primer workspace del usuario
-  useEffect(() => {
-    async function getFirstWorkspace() {
-      if (!user?.company?.slug) return;
-      try {
-        const response = await authApiClient.get("/workspace");
-        const workspaces =
-          response.data.data?.workspaces || response.data?.workspaces || [];
-        if (workspaces.length > 0) {
-          setWorkspaceId(workspaces[0].id);
-        }
-        console.log("✅ workspaceId seteado:", workspaces[0].id);
-        console.log("🔍 workspaceId actual:", workspaceId);
-      } catch (error) {
-        console.error("Error fetching workspaces:", error);
-      }
-    }
-    getFirstWorkspace();
-  }, [user?.company?.slug]);
+  // // Obtener el primer workspace del usuario
+  // useEffect(() => {
+  //   async function getFirstWorkspace() {
+  //     if (!user?.company?.slug) return;
+  //     try {
+  //       const response = await authApiClient.get("/workspace");
+  //       const workspaces =
+  //         response.data.data?.workspaces || response.data?.workspaces || [];
+  //       if (workspaces.length > 0) {
+  //         setWorkspaceId(workspaces[0].id);
+  //         console.log("✅ workspaceId seteado:", workspaces[0].id);
+  //         console.log("🔍 workspaceId actual:", workspaceId);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching workspaces:", error);
+  //     }
+  //   }
+  //   getFirstWorkspace();
+  // }, [user?.company?.slug]);
 
   useEffect(() => {
     const saved = localStorage.getItem("theme") as "light" | "dark" | null;
@@ -80,7 +79,7 @@ export function AppSidebar() {
     },
     {
       name: "Team",
-      href: `/${user?.company?.slug}/team?workspaceId=${workspaceId}`, // ✅ Con workspaceId
+      href: `/${user?.company?.slug}/team`, // ✅ Con workspaceId
       icon: Users,
     },
     { name: "Profile", href: `/${user?.company?.slug}/profile`, icon: User },

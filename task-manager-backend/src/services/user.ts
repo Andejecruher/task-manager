@@ -1,11 +1,14 @@
 import { config } from "@/config";
 import { User, UserSession } from "@/database/models";
 import { Company } from "@/database/models/Company";
+import { Workspace } from "@/database/models/Workspace";
+import { WorkspaceMember } from "@/database/models/WorkspaceMember";
 import { emailService } from "@/services/email";
 import { passwordService } from "@/services/password";
 import { AuthError, NotFoundError, UserRole, ValidationError } from "@/types";
 import { logger } from "@/utils/logger";
-import { Op } from "sequelize"; // <-- IMPORTANTE: Agregar esta importación
+import { Op } from "sequelize";
+import { v4 as uuidv4 } from "uuid";
 
 export class UserService {
   async createUser(data: any, companyId: string): Promise<any> {
@@ -388,6 +391,212 @@ export class UserService {
       await emailService.sendEmail(to, subject, text, html);
     } catch (error) {
       logger.error("Error enviando email de verificación:", error);
+    }
+  }
+
+  // ─── Workspace assignment ────────────────────────────────────────────────
+
+  async getUsersByCompany(companyId: string): Promise<object[]> {
+    try {
+      const users = await User.findAll({
+        where: { company_id: companyId, is_active: true },
+        attributes: ["id", "email", "full_name", "avatar_url", "role", "is_active"],
+        order: [["full_name", "ASC"]],
+      });
+      return users;
+    } catch (error) {
+      logger.error("Error obteniendo usuarios de la compañía:", error);
+      throw new AuthError(
+        "Error obteniendo usuarios",
+        "GET_USERS_ERROR",
+        500,
+      );
+    }
+  }
+
+  async getUserWorkspaces(
+    userId: string,
+    companyId: string,
+  ): Promise<{ assigned: object[]; available: object[] }> {
+    try {
+      const user = await User.findOne({
+        where: { id: userId, company_id: companyId },
+      });
+      if (!user) {
+        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+      }
+
+      // Workspaces where the user is a member
+      const members = await WorkspaceMember.findAll({
+        where: { user_id: userId, company_id: companyId },
+        include: [
+          {
+            model: Workspace,
+            as: "workspace",
+            attributes: ["id", "name", "slug", "description", "icon", "color", "is_private"],
+          },
+        ],
+      });
+
+      const assignedWorkspaceIds = members.map((m: any) => m.workspace_id);
+
+      const assigned = members
+        .filter((m: any) => m.workspace != null)
+        .map((m: any) => ({
+          memberId: m.id,
+          workspaceId: m.workspace_id,
+          role: m.role,
+          joinedAt: m.joined_at,
+          workspace: m.workspace,
+        }));
+
+      // All workspaces of the company NOT already assigned to the user
+      const available = await Workspace.findAll({
+        where: {
+          company_id: companyId,
+          ...(assignedWorkspaceIds.length > 0
+            ? { id: { [Op.notIn]: assignedWorkspaceIds } }
+            : {}),
+        },
+        attributes: ["id", "name", "slug", "description", "icon", "color", "is_private"],
+        order: [["name", "ASC"]],
+      });
+
+      return { assigned, available };
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error obteniendo workspaces del usuario:", error);
+      throw new AuthError(
+        "Error obteniendo workspaces del usuario",
+        "GET_USER_WORKSPACES_ERROR",
+        500,
+      );
+    }
+  }
+
+  async assignWorkspacesToUser(
+    userId: string,
+    workspaceIds: string[],
+    companyId: string,
+    requestingUserId: string,
+  ): Promise<{ assigned: number }> {
+    try {
+      const user = await User.findOne({ where: { id: userId, company_id: companyId } });
+      if (!user) {
+        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+      }
+
+      const requestingUser = await User.findOne({
+        where: { id: requestingUserId, company_id: companyId },
+      });
+      const canAssign =
+        requestingUser?.role === UserRole.OWNER ||
+        requestingUser?.role === UserRole.ADMIN;
+      if (!canAssign) {
+        throw new AuthError(
+          "No tienes permisos para asignar workspaces",
+          "FORBIDDEN",
+          403,
+        );
+      }
+
+      // Verify workspaces exist and belong to the company
+      const targetWorkspaces = await Workspace.findAll({
+        where: { id: { [Op.in]: workspaceIds }, company_id: companyId },
+        attributes: ["id"],
+      });
+      if (targetWorkspaces.length !== workspaceIds.length) {
+        throw new AuthError(
+          "Uno o más workspaces no fueron encontrados",
+          "WORKSPACES_NOT_FOUND",
+          404,
+        );
+      }
+
+      const records = workspaceIds.map((workspaceId) => ({
+        id: uuidv4(),
+        workspace_id: workspaceId,
+        user_id: userId,
+        company_id: companyId,
+        role: "member" as const,
+        permissions: {},
+        notification_settings: {},
+        joined_at: new Date(),
+      }));
+
+      const result = await WorkspaceMember.bulkCreate(records as any, {
+        ignoreDuplicates: true,
+      });
+
+      logger.info("Workspaces asignados al usuario", {
+        userId,
+        workspaceIds,
+        assigned: result.length,
+        requestedBy: requestingUserId,
+      });
+
+      return { assigned: result.length };
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error asignando workspaces al usuario:", error);
+      throw new AuthError(
+        "Error asignando workspaces al usuario",
+        "ASSIGN_WORKSPACES_ERROR",
+        500,
+      );
+    }
+  }
+
+  async unassignWorkspacesFromUser(
+    userId: string,
+    workspaceIds: string[],
+    companyId: string,
+    requestingUserId: string,
+  ): Promise<{ removed: number }> {
+    try {
+      const user = await User.findOne({ where: { id: userId, company_id: companyId } });
+      if (!user) {
+        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+      }
+
+      const requestingUser = await User.findOne({
+        where: { id: requestingUserId, company_id: companyId },
+      });
+      const canUnassign =
+        requestingUser?.role === UserRole.OWNER ||
+        requestingUser?.role === UserRole.ADMIN;
+      if (!canUnassign) {
+        throw new AuthError(
+          "No tienes permisos para desasignar workspaces",
+          "FORBIDDEN",
+          403,
+        );
+      }
+
+      const removed = await WorkspaceMember.destroy({
+        where: {
+          user_id: userId,
+          workspace_id: { [Op.in]: workspaceIds },
+          company_id: companyId,
+        },
+      });
+
+      logger.info("Workspaces desasignados del usuario", {
+        userId,
+        workspaceIds,
+        removed,
+        requestedBy: requestingUserId,
+      });
+
+      return { removed };
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error desasignando workspaces del usuario:", error);
+      throw new AuthError(
+        "Error desasignando workspaces del usuario",
+        "UNASSIGN_WORKSPACES_ERROR",
+        500,
+      );
     }
   }
 }

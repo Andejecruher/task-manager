@@ -48,4 +48,44 @@ router.patch(
   userController.deactivateUserById.bind(userController),
 );
 
+// Get all users for the company
+router.get(
+  "/",
+  authenticate,
+  requireEmailVerified,
+  CompanyGuard,
+  extractDeviceInfo,
+  userController.getCompanyUsers.bind(userController),
+);
+
+// Get workspaces assigned/available for a user
+router.get(
+  "/:id/workspaces",
+  authenticate,
+  requireEmailVerified,
+  CompanyGuard,
+  extractDeviceInfo,
+  userController.getUserWorkspaces.bind(userController),
+);
+
+// Assign workspaces to a user (bulk)
+router.post(
+  "/:id/assign-workspaces",
+  authenticate,
+  requireEmailVerified,
+  CompanyGuard,
+  extractDeviceInfo,
+  userController.assignWorkspacesToUser.bind(userController),
+);
+
+// Unassign workspaces from a user (bulk)
+router.delete(
+  "/:id/unassign-workspaces",
+  authenticate,
+  requireEmailVerified,
+  CompanyGuard,
+  extractDeviceInfo,
+  userController.unassignWorkspacesFromUser.bind(userController),
+);
+
 export default router;

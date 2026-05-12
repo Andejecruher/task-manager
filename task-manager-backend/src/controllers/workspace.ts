@@ -150,6 +150,13 @@ class AddMemberDTO {
   role!: string;
 }
 
+// DTO para asignar/desasignar usuarios en bulk
+class AssignUsersDTO {
+  @IsUUID("4", { each: true, message: "Cada userId debe ser un UUID válido" })
+  @IsNotEmpty({ message: "userIds es requerido" })
+  userIds!: string[];
+}
+
 export class WorkspaceController {
   //workspaces - Obtener todos los workspaces
   async getWorkspaces(req: Request, res: Response) {
@@ -636,6 +643,108 @@ export class WorkspaceController {
           });
       }
 
+      return res.status(500).apiError("Error interno del servidor");
+    }
+  }
+
+  // ─── Member assignment handlers ──────────────────────────────────────────
+
+  async getUsersForWorkspace(req: Request, res: Response) {
+    try {
+      const paramsDto = plainToClass(WorkspaceIdParamsDTO, req.params);
+      const paramsErrors = await validate(paramsDto);
+      if (paramsErrors.length > 0) {
+        return res.status(400).apiValidationError(paramsErrors);
+      }
+
+      const authReq = req as AuthRequest;
+      const data = await workspaceService.getUsersForWorkspace(
+        paramsDto.id,
+        authReq.company.id,
+      );
+
+      return res
+        .status(200)
+        .apiSuccess(data, "Usuarios del workspace obtenidos exitosamente");
+    } catch (error) {
+      logger.error("Error getting workspace users:", error);
+      if (error instanceof AuthError) {
+        return res
+          .status(error.statusCode)
+          .apiError(error.message, error.statusCode, { code: error.code });
+      }
+      return res.status(500).apiError("Error interno del servidor");
+    }
+  }
+
+  async assignUsersToWorkspace(req: Request, res: Response) {
+    try {
+      const paramsDto = plainToClass(WorkspaceIdParamsDTO, req.params);
+      const paramsErrors = await validate(paramsDto);
+      if (paramsErrors.length > 0) {
+        return res.status(400).apiValidationError(paramsErrors);
+      }
+
+      const bodyDto = plainToClass(AssignUsersDTO, req.body);
+      const bodyErrors = await validate(bodyDto);
+      if (bodyErrors.length > 0) {
+        return res.status(400).apiValidationError(bodyErrors);
+      }
+
+      const authReq = req as AuthRequest;
+      const data = await workspaceService.assignUsersToWorkspace(
+        paramsDto.id,
+        bodyDto.userIds,
+        authReq.company.id,
+        authReq.user.id,
+      );
+
+      return res
+        .status(200)
+        .apiSuccess(data, "Usuarios asignados exitosamente");
+    } catch (error) {
+      logger.error("Error assigning users to workspace:", error);
+      if (error instanceof AuthError) {
+        return res
+          .status(error.statusCode)
+          .apiError(error.message, error.statusCode, { code: error.code });
+      }
+      return res.status(500).apiError("Error interno del servidor");
+    }
+  }
+
+  async unassignUsersFromWorkspace(req: Request, res: Response) {
+    try {
+      const paramsDto = plainToClass(WorkspaceIdParamsDTO, req.params);
+      const paramsErrors = await validate(paramsDto);
+      if (paramsErrors.length > 0) {
+        return res.status(400).apiValidationError(paramsErrors);
+      }
+
+      const bodyDto = plainToClass(AssignUsersDTO, req.body);
+      const bodyErrors = await validate(bodyDto);
+      if (bodyErrors.length > 0) {
+        return res.status(400).apiValidationError(bodyErrors);
+      }
+
+      const authReq = req as AuthRequest;
+      const data = await workspaceService.unassignUsersFromWorkspace(
+        paramsDto.id,
+        bodyDto.userIds,
+        authReq.company.id,
+        authReq.user.id,
+      );
+
+      return res
+        .status(200)
+        .apiSuccess(data, "Usuarios desasignados exitosamente");
+    } catch (error) {
+      logger.error("Error unassigning users from workspace:", error);
+      if (error instanceof AuthError) {
+        return res
+          .status(error.statusCode)
+          .apiError(error.message, error.statusCode, { code: error.code });
+      }
       return res.status(500).apiError("Error interno del servidor");
     }
   }

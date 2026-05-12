@@ -19,6 +19,7 @@ router.get(
   workspaceController.getWorkspaces.bind(workspaceController),
 );
 
+// Create a new workspace
 router.post(
   "/",
   authenticate,
@@ -100,6 +101,36 @@ router.get(
   requireEmailVerified,
   extractDeviceInfo,
   workspaceController.getTasksByWorkspaceId.bind(workspaceController),
+);
+
+// Get assigned and available users for a workspace
+router.get(
+  "/:id/users",
+  authenticate,
+  requireEmailVerified,
+  extractDeviceInfo,
+  CompanyGuard,
+  workspaceController.getUsersForWorkspace.bind(workspaceController),
+);
+
+// Assign users to a workspace (bulk)
+router.post(
+  "/:id/assign",
+  authenticate,
+  requireEmailVerified,
+  extractDeviceInfo,
+  CompanyGuard,
+  workspaceController.assignUsersToWorkspace.bind(workspaceController),
+);
+
+// Unassign users from a workspace (bulk)
+router.delete(
+  "/:id/unassign",
+  authenticate,
+  requireEmailVerified,
+  extractDeviceInfo,
+  CompanyGuard,
+  workspaceController.unassignUsersFromWorkspace.bind(workspaceController),
 );
 
 export default router;

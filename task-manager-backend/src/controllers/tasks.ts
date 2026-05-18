@@ -1,7 +1,7 @@
 import { tasksService } from "@/services/tasks";
 import { AuthError, type AuthRequest } from "@/types";
 import { logger } from "@/utils/logger";
-import { plainToClass } from "class-transformer";
+import { plainToClass, Transform } from "class-transformer";
 import {
   IsArray,
   IsDate,
@@ -63,6 +63,9 @@ class CreateTaskDTO {
 
   @IsDate({ message: "due_date debe ser una fecha válida" })
   @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    value ? new Date(value as string | number) : undefined,
+  )
   due_date?: Date;
 
   @IsArray({ message: "tags debe ser un array" })
@@ -101,6 +104,9 @@ class UpdateTaskDTO {
 
   @IsDate({ message: "due_date debe ser una fecha válida" })
   @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    value ? new Date(value as string | number) : undefined,
+  )
   due_date?: Date;
 
   @IsArray({ message: "tags debe ser un array" })
@@ -112,7 +118,21 @@ export class TasksController {
   async createTask(req: Request, res: Response) {
     try {
       // Validar el body
-      const bodyDto = plainToClass(CreateTaskDTO, req.body);
+      const bodyDto = plainToClass(CreateTaskDTO, req.body, {});
+
+      logger.debug("📥 assignee_id recibido:", {
+        value: bodyDto.assignee_id,
+        type: typeof bodyDto.assignee_id,
+        isNull: bodyDto.assignee_id === null,
+        isUndefined: bodyDto.assignee_id === undefined,
+      });
+      // 👇 AGREGAR ESTE LOG
+      logger.debug("📅 Fecha en controlador:", {
+        due_date: bodyDto.due_date,
+        type: typeof bodyDto.due_date,
+        isDate: bodyDto.due_date instanceof Date,
+      });
+
       const bodyErrors = await validate(bodyDto);
 
       if (bodyErrors.length > 0) {
@@ -134,6 +154,9 @@ export class TasksController {
         return res.status(400).apiError("Usuario no autenticado", 400);
       }
 
+      logger.debug("📅 Guardando en BD:", {
+        due_date: bodyDto.due_date,
+      });
       // Crear la tarea
       const newTask = await tasksService.createTask(
         {
@@ -143,7 +166,7 @@ export class TasksController {
           priority: bodyDto.priority || "medium",
           assignee_id: bodyDto.assignee_id,
           assignee_ids: bodyDto.assignee_ids || [],
-          due_date: bodyDto.due_date,
+          due_date: bodyDto.due_date ?? undefined,
           tags: bodyDto.tags || [],
         },
         workspaceId,
@@ -238,7 +261,10 @@ export class TasksController {
 
       const updatedTask = await tasksService.updateTask(
         paramsDto.taskId,
-        bodyDto,
+        {
+          ...bodyDto,
+          due_date: bodyDto.due_date ?? undefined,
+        },
         companyId,
         userId,
       );

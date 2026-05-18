@@ -1,5 +1,5 @@
 import { authApiClient } from "@/lib/api";
-import { ApiResponse, Task, Workspace } from "@/types";
+import { ApiResponse, Task, Workspace, User } from "@/types";
 
 interface WorkspaceResponse {
   workspaces: Workspace[];
@@ -101,7 +101,7 @@ export async function addWorkspaceMember(
 
 export async function getWorkspaceUsers(
   workspaceId: string,
-): Promise<ApiResponse<{ assigned: unknown[]; available: unknown[] }>> {
+): Promise<ApiResponse<User[]>> {
   return await authApiClient
     .get(`/workspace/${workspaceId}/users`)
     .then((response) => response.data)

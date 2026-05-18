@@ -6,8 +6,9 @@ import {
   getWorkspaces,
   updateWorkspace as updateWorkspaceService,
   deleteWorkspace as deleteWorkspaceService,
+  getWorkspaceUsers as getWorkspaceUsersService,
 } from "@/services/workspace";
-import { ApiErrorResponse, Task, Workspace } from "@/types";
+import { ApiErrorResponse, Task, Workspace, User } from "@/types";
 import { createContext, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -15,6 +16,7 @@ interface WorkspaceContextType {
   workspaces: Workspace[];
   workspaceId: string | undefined;
   tasks: Task[];
+  users: User[]; // agregue users al contexto para que esté disponible globalmente
   loading: boolean;
   setWorkspaceId: (id: string | undefined) => void;
   createWorkspace: (data: {
@@ -45,8 +47,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspaceId, setWorkspaceId] = useState<string | undefined>(undefined);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [users, setUsers] = useState<User[]>([]); //user state para almacenar usuarios del workspace
   const [loading, setLoading] = useState(false);
 
+  // Cargar workspaces
   useEffect(() => {
     const fetchWorkspaces = async () => {
       try {
@@ -73,6 +77,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Cargar tareas del workspace
   useEffect(() => {
     const fetchWorkspaceTasks = async () => {
       if (!workspaceId) return;
@@ -96,6 +101,62 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     };
 
     fetchWorkspaceTasks();
+  }, [workspaceId]);
+
+  //Cargar usuarios del workspace
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!workspaceId) return;
+
+      try {
+        const response = await getWorkspaceUsersService(workspaceId);
+
+        if (response.success) {
+          const data: any = response.data;
+          let membersArray: any[] = [];
+
+          if (Array.isArray(data)) {
+            membersArray = data;
+          } else if (data?.assigned || data?.available) {
+            membersArray = [
+              ...(data.assigned || []),
+              ...(data.available || []),
+            ];
+          }
+
+          const normalizedUsers: User[] = membersArray
+            .map((member: any) => ({
+              id: member.userId || member.user?.id || member.id,
+              fullName:
+                member.user?.full_name ||
+                member.user?.fullName ||
+                member.fullName ||
+                member.name ||
+                member.user?.email,
+              email: member.user?.email || member.email,
+              role: member.role || member.user?.role,
+              avatarUrl: member.user?.avatar_url || member.avatarUrl,
+              companyId:
+                member.user?.companyId ||
+                member.companyId ||
+                member.user?.company_id ||
+                "",
+              emailVerified:
+                member.user?.emailVerified ??
+                member.user?.email_verified ??
+                member.emailVerified ??
+                false,
+            }))
+            .filter((user) => user.id);
+
+          setUsers(normalizedUsers);
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+
+    fetchUsers();
   }, [workspaceId]);
 
   const createWorkspace = async (workspaceData: {
@@ -186,6 +247,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       value={{
         workspaces,
         tasks,
+        users,
         loading,
         workspaceId,
         createWorkspace,

@@ -21,6 +21,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useTask } from "@/hooks/use-task";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   PRIORITY_COLORS,
   PRIORITY_LABELS,
@@ -42,19 +43,13 @@ interface TaskDetailsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Usuarios mock temporalmente (después conéctalo con tu backend de usuarios)
-const MOCK_USERS = [
-  { id: "user-1", name: "Alex Johnson", email: "alex@example.com" },
-  { id: "user-2", name: "Sarah Chen", email: "sarah@example.com" },
-  { id: "user-3", name: "Marcus Lee", email: "marcus@example.com" },
-];
-
 export function TaskDetailsDialog({
   task,
   open,
   onOpenChange,
 }: TaskDetailsDialogProps) {
   const { updateTask, deleteTask } = useTask();
+  const { users } = useWorkspace();
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -81,8 +76,8 @@ export function TaskDetailsDialog({
 
   if (!task) return null;
 
-  const assignee = MOCK_USERS.find((u) => u.id === assigneeId);
-  const creator = MOCK_USERS.find((u) => u.id === task.created_by);
+  const assignee = users?.find((u) => u.id === assigneeId);
+  const creator = users?.find((u) => u.id === task.created_by);
 
   const handleSave = () => {
     updateTask(task.id, {
@@ -188,9 +183,9 @@ export function TaskDetailsDialog({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {MOCK_USERS.map((u) => (
+                      {users?.map((u) => (
                         <SelectItem key={u.id} value={u.id}>
-                          {u.name}
+                          {u.fullName || u.email}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -270,10 +265,14 @@ export function TaskDetailsDialog({
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
                             <AvatarFallback className="bg-blue-600 text-white text-xs">
-                              {assignee.name.charAt(0).toUpperCase()}
+                              {assignee.fullName?.charAt(0).toUpperCase() ||
+                                assignee.email?.charAt(0).toUpperCase() ||
+                                ""}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="font-medium">{assignee.name}</span>
+                          <span className="font-medium">
+                            {assignee.fullName || assignee.email}
+                          </span>
                         </div>
                       ) : (
                         <span className="text-muted-foreground">
@@ -330,9 +329,11 @@ export function TaskDetailsDialog({
                       "MMMM d, yyyy 'at' h:mm a",
                     )}
                   </p>
-                  {creator && <p>Created by {creator.name}</p>}
+                  {creator && (
+                    <p>Created by {creator.fullName || creator.email}</p>
+                  )}
                   <p>
-                    Last updated{" "}
+                    Last updated
                     {format(
                       new Date(task.updated_at),
                       "MMMM d, yyyy 'at' h:mm a",

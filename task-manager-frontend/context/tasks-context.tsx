@@ -80,6 +80,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         description: data.description,
         status: data.status,
         priority: data.priority,
+        assignee_id: data.assignee_id,
+        due_date: data.due_date,
       });
 
       if (response.success) {

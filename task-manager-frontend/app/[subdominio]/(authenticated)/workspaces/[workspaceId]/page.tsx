@@ -22,7 +22,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 export default function WorkspaceBoardPage() {
   const params = useParams();
   const { user } = useAuth();
-  const { workspaces, setWorkspaceId } = useWorkspace();
+  const { workspaces, setWorkspaceId, users } = useWorkspace();
   const { tasks, loading, updateTask, refreshTasks } = useTask();
 
   const workspaceId = params.workspaceId as string;
@@ -192,20 +192,26 @@ export default function WorkspaceBoardPage() {
                     No tasks
                   </div>
                 ) : (
-                  tasksByStatus[status]?.map((task) => (
-                    <div
-                      key={task.id}
-                      draggable
-                      onDragStart={() => handleDragStart(task)}
-                      className="cursor-move"
-                    >
-                      <TaskCard
-                        task={task}
-                        assignee={undefined}
-                        onClick={() => handleTaskClick(task)}
-                      />
-                    </div>
-                  ))
+                  tasksByStatus[status]?.map((task) => {
+                    const assignedUser = users?.find(
+                      (u) => u.id === task.assignee_id,
+                    );
+
+                    return (
+                      <div
+                        key={task.id}
+                        draggable
+                        onDragStart={() => handleDragStart(task)}
+                        className="cursor-move"
+                      >
+                        <TaskCard
+                          task={task}
+                          assignee={assignedUser}
+                          onClick={() => handleTaskClick(task)}
+                        />
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>

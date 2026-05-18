@@ -22,6 +22,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTask } from "@/hooks/use-task";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { STATUS_LABELS, STATUS_ORDER, PRIORITY_LABELS } from "@/lib/schemas";
 import type { TaskStatus, Priority } from "@/lib/types";
 
@@ -39,10 +40,13 @@ export function CreateTaskDialog({
   trigger,
 }: CreateTaskDialogProps) {
   const { createTask } = useTask();
+  const { users } = useWorkspace();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(defaultStatus);
+  const [assigneeId, setAssigneeId] = useState<string>("unassigned");
+  const [dueDate, setDueDate] = useState<string>("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [isCreating, setIsCreating] = useState(false);
 
@@ -58,6 +62,8 @@ export function CreateTaskDialog({
       description: description.trim() || undefined,
       status,
       priority,
+      assignee_id: assigneeId === "unassigned" ? null : assigneeId,
+      due_date: dueDate ? new Date(dueDate + "T12:00:00") : undefined,
     });
     setIsCreating(false);
 
@@ -67,6 +73,8 @@ export function CreateTaskDialog({
       setDescription("");
       setStatus(defaultStatus);
       setPriority("medium");
+      setAssigneeId("unassigned");
+      setDueDate("");
       toast.success("Task created successfully");
     }
   };
@@ -98,6 +106,7 @@ export function CreateTaskDialog({
                 disabled={isCreating}
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -109,6 +118,7 @@ export function CreateTaskDialog({
                 rows={3}
               />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Status</Label>
@@ -129,6 +139,7 @@ export function CreateTaskDialog({
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
                 <Label>Priority</Label>
                 <Select
@@ -149,7 +160,37 @@ export function CreateTaskDialog({
                 </Select>
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="assignee">Assignee</Label>
+                <Select value={assigneeId} onValueChange={setAssigneeId}>
+                  <SelectTrigger id="assignee">
+                    <SelectValue placeholder="Select assignee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {users?.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.fullName || user.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dueDate">Due date</Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
+
           <DialogFooter>
             <Button
               variant="outline"

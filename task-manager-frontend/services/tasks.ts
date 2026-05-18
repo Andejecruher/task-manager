@@ -10,6 +10,7 @@ export async function createTask(
     status?: string;
     priority?: string;
     due_date?: Date;
+    assignee_id: string;
     board_id?: string;
   },
 ): Promise<ApiResponse<Task>> {

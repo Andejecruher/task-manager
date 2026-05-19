@@ -36,6 +36,33 @@ export async function getMeServices(): Promise<ApiResponse<AuthUser>> {
     });
 }
 
+// funcion para actualizar el perfil del usuario
+export async function updateProfileService(data: {
+  fullName?: string;
+  avatarUrl?: string;
+  timezone?: string;
+  locale?: string;
+}): Promise<ApiResponse<AuthUser>> {
+  return await authApiClient
+    .put(`/auth/profile`, data)
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
+export async function changePasswordService(data: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<ApiResponse<null>> {
+  return await authApiClient
+    .post(`/auth/change-password`, data)
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
 export async function loginServices(
   data: LoginDTO,
 ): Promise<ApiResponse<AuthUser>> {
@@ -49,7 +76,10 @@ export async function loginServices(
     });
 }
 
-export async function validateSlug(slug: string, token?: string): Promise<boolean> {
+export async function validateSlug(
+  slug: string,
+  token?: string,
+): Promise<boolean> {
   return await axios
     .get(`${process.env.API_URL}/auth/validate-slug/${slug}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -58,11 +88,17 @@ export async function validateSlug(slug: string, token?: string): Promise<boolea
     .catch((error) => false);
 }
 
-export async function verifyEmailService(token: string): Promise<ApiResponse<{ slug: string }>> {
+export async function verifyEmailService(
+  token: string,
+): Promise<ApiResponse<{ slug: string }>> {
   return await axios
-    .post(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-email/${token}`, null, {
-      withCredentials: true,
-    })
+    .post(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/verify-email/${token}`,
+      null,
+      {
+        withCredentials: true,
+      },
+    )
     .then((response) => response.data)
     .catch((error) => {
       throw error.response?.data;
@@ -74,10 +110,10 @@ export async function requestPasswordResetService(
   companySlug: string,
 ): Promise<ApiResponse<null>> {
   return await axios
-    .post(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/request-password-reset`,
-      { email, companySlug },
-    )
+    .post(`${process.env.NEXT_PUBLIC_API_URL}/auth/request-password-reset`, {
+      email,
+      companySlug,
+    })
     .then((response) => response.data)
     .catch((error) => {
       throw error.response?.data;
@@ -104,9 +140,7 @@ export async function logoutAllServices(): Promise<
 > {
   try {
     //si falla, igual limpiamos todo
-    await authApiClient.post(
-      `/auth/logout-all`
-    );
+    await authApiClient.post(`/auth/logout-all`);
   } catch (error) {
     console.error("Logout API error:", error);
   } finally {

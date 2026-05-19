@@ -6,6 +6,8 @@ export interface User {
   companyId: string;
   emailVerified: boolean;
   avatarUrl?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Company {

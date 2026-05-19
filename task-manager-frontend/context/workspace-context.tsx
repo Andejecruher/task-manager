@@ -15,6 +15,7 @@ import { toast } from "sonner";
 interface WorkspaceContextType {
   workspaces: Workspace[];
   workspaceId: string | undefined;
+  workspace: Workspace | null;
   tasks: Task[];
   users: User[]; // agregue users al contexto para que esté disponible globalmente
   loading: boolean;
@@ -46,6 +47,7 @@ export const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspaceId, setWorkspaceId] = useState<string | undefined>(undefined);
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]); //user state para almacenar usuarios del workspace
   const [loading, setLoading] = useState(false);
@@ -146,6 +148,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                 member.user?.email_verified ??
                 member.emailVerified ??
                 false,
+              created_at:
+                member.user?.created_at ||
+                member.user?.createdAt ||
+                member.created_at ||
+                new Date().toISOString(),
+              updated_at:
+                member.user?.updated_at ||
+                member.user?.updatedAt ||
+                member.updated_at ||
+                new Date().toISOString(),
             }))
             .filter((user) => user.id);
 
@@ -249,6 +261,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         tasks,
         users,
         loading,
+        workspace,
         workspaceId,
         createWorkspace,
         updateWorkspace,

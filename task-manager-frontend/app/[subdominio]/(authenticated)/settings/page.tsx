@@ -1,8 +1,5 @@
-// app/[subdominio]/(authenticated)/settings/page.tsx
 "use client";
 
-import { useEffect } from "react";
-import { useParams } from "next/navigation";
 import { useSettings } from "@/hooks/use-settings";
 import {
   Card,
@@ -29,9 +26,6 @@ import {
 import { format } from "date-fns";
 
 export default function SettingsPage() {
-  const params = useParams();
-  const subdominio = params.subdominio as string;
-
   const {
     user,
     workspace,
@@ -43,28 +37,21 @@ export default function SettingsPage() {
     email,
     setName,
     setEmail,
-    loadData,
     updateProfile,
   } = useSettings();
 
-  useEffect(() => {
-    loadData(subdominio);
-  }, [subdominio, loadData]);
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) return;
+    if (!name.trim()) return;
     await updateProfile();
   };
 
   if (loading) {
     return (
       <div className="flex min-h-screen bg-background">
-        <div>
-          <main className="flex-1 p-8">
-            <div className="text-center text-muted-foreground">Cargando...</div>
-          </main>
-        </div>
+        <main className="flex-1 p-8">
+          <div className="text-center text-muted-foreground">Cargando...</div>
+        </main>
       </div>
     );
   }
@@ -93,15 +80,11 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-6">
                   <Avatar className="h-20 w-20">
                     <AvatarFallback className="bg-blue-600 text-white text-2xl">
-                      {user?.fullName?.charAt(0).toUpperCase() ||
-                        user?.name?.charAt(0).toUpperCase() ||
-                        "U"}
+                      {user?.fullName?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">
-                      {user?.fullName || user?.fullName}
-                    </h3>
+                    <h3 className="font-semibold">{user?.fullName}</h3>
                     <p className="text-sm text-muted-foreground">
                       {user?.email}
                     </p>
@@ -249,8 +232,8 @@ export default function SettingsPage() {
                     <div>
                       <p className="text-sm font-medium">Member Since</p>
                       <p className="text-sm text-muted-foreground">
-                        {user?.createdAt
-                          ? format(new Date(user.createdAt), "MMMM d, yyyy")
+                        {user?.created_at
+                          ? format(new Date(user.created_at), "MMMM d, yyyy")
                           : "N/A"}
                       </p>
                     </div>

@@ -79,10 +79,9 @@ export function AppSidebar() {
     },
     {
       name: "Team",
-      href: `/${user?.company?.slug}/team`, // ✅ Con workspaceId
+      href: `/${user?.company?.slug}/team`,
       icon: Users,
     },
-    { name: "Profile", href: `/${user?.company?.slug}/profile`, icon: User },
     {
       name: "Settings",
       href: `/${user?.company?.slug}/settings`,

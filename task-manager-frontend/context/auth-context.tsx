@@ -5,7 +5,9 @@ import {
   getMeServices,
   loginServices,
   logoutAllServices,
-  registerServices
+  registerServices,
+  updateProfileService,
+  changePasswordService,
 } from "@/services/auth";
 import { AuthUser, Company, LoginDTO, RegisterDTO } from "@/types";
 import { useRouter } from "next/navigation";
@@ -18,6 +20,7 @@ import {
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
+
 // ── Context type ─────────────────────────────────────────────────────────────
 
 interface AuthContextType {
@@ -32,6 +35,14 @@ interface AuthContextType {
   ) => Promise<void>;
   logout: () => Promise<void>;
   register: (data: RegisterDTO) => Promise<boolean>;
+  updateProfile: (data: {
+    fullName?: string;
+    avatarUrl?: string;
+  }) => Promise<void>;
+  changePassword: (data: {
+    currentPassword: string;
+    newPassword: string;
+  }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [sessionBanner, setSessionBanner] = useState(false);
 
+  // ── Login ─────────────────────────────────────────────────────────────────
   const login = useCallback(
     async (email: string, password: string, companySlug?: string) => {
       setLoading(true);
@@ -61,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           setTimeout(() => {
             router.replace(`/${company.slug}/workspaces`);
-          }, 1500); // Redirect after 1.5 seconds to show success message
+          }, 1500);
         } else {
           throw new Error(result.error || "Login failed");
         }
@@ -79,11 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [router],
   );
 
+  // ── Logout ────────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
     try {
       await logoutAllServices();
       toast.info("Logged out", {
-        description: "You have been successfully logged out from all devices.",
+        description: "You have been successfully logged out.",
       });
     } catch (error) {
       console.error("Logout error:", error);
@@ -93,12 +106,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } finally {
       setUser(null);
-      // obtener el slug de la empresa para redirigir al login correcto
-      const companySlug = user?.company?.slug || window.location.pathname.split("/")[1] || "login";
-      router.replace(`/${companySlug}/login` || "/login");
+      const companySlug =
+        user?.company?.slug ||
+        window.location.pathname.split("/")[1] ||
+        "login";
+      router.replace(`/${companySlug}/login`);
     }
-  }, [router]);
+  }, [router, user]);
 
+  // ── Register ──────────────────────────────────────────────────────────────
   const register = useCallback(
     async ({
       fullName,
@@ -107,28 +123,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       companyName,
       companySlug,
     }: RegisterDTO) => {
-      const newUser: RegisterDTO = {
-        fullName,
-        email,
-        companySlug,
-        companyName,
-        password: password,
-      };
-
       try {
-        const result = await registerServices(newUser);
+        const result = await registerServices({
+          fullName,
+          email,
+          password,
+          companyName,
+          companySlug,
+        });
+
         if (result.success) {
           const { user, company, tokens } = result.data;
           setUser({ user, company, tokens });
 
           setTimeout(() => {
             router.replace(`/${company.slug}/workspaces`);
-          }, 1500); // Redirect after 1.5 seconds to show success message
+          }, 1500);
           return true;
-        } else {
-          // Handle registration error (e.g., show error message)
-          return false;
         }
+        return false;
       } catch (error) {
         throw error;
       }
@@ -136,37 +149,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [router],
   );
 
+  // ── Get Me (recuperar sesión al recargar) ────────────────────────────────
   const getMe = useCallback(async () => {
     try {
-      if (user) {
-        setLoading(false);
-        return;
-      }
-
+      setLoading(true);
       const result = await getMeServices();
       if (result.success) {
         const { user, company, tokens } = result.data;
-        setUser({
-          user,
-          company,
-          tokens,
-        });
+        setUser({ user, company, tokens });
       } else {
-        throw new Error(result.error || "Failed to fetch user data");
+        setUser(null);
       }
     } catch (error) {
       setUser(null);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
+  // ── Update Profile ────────────────────────────────────────────────────────
+  const updateProfile = useCallback(
+    async (data: { fullName?: string; avatarUrl?: string }) => {
+      try {
+        await updateProfileService(data);
+        // Recargar datos del usuario para actualizar el estado
+        await getMe();
+        toast.success("Profile updated successfully");
+      } catch (error: any) {
+        toast.error("Error updating profile", {
+          description: error?.message || "An error occurred",
+        });
+        throw error;
+      }
+    },
+    [getMe],
+  );
+
+  // ── Change Password ───────────────────────────────────────────────────────
+  const changePassword = useCallback(
+    async (data: { currentPassword: string; newPassword: string }) => {
+      try {
+        await changePasswordService(data);
+        toast.success("Password changed successfully");
+      } catch (error: any) {
+        toast.error("Error changing password", {
+          description: error?.message || "An error occurred",
+        });
+        throw error;
+      }
+    },
+    [],
+  );
+
+  // ── Efecto para recuperar sesión al cargar la app ────────────────────────
   useEffect(() => {
     const token = getCookie("access_token");
     if (!user && token) {
       getMe();
     }
-  }, []);
+  }, [getMe, user]);
 
   return (
     <AuthContext.Provider
@@ -178,6 +219,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         register,
+        updateProfile,
+        changePassword,
       }}
     >
       {children}
@@ -185,6 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// ── Hook para usar el contexto ──────────────────────────────────────────────
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");

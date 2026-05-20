@@ -12,6 +12,7 @@ import {
   type RegisterDTO,
   type ResetPasswordDTO,
   type UpdateProfileDTO,
+  type deleteProfileDTO,
 } from "@/types";
 import { logger } from "@/utils/logger";
 import { emailService } from "./email";
@@ -323,11 +324,7 @@ export class AuthService {
 
       // 5.1 Verificar si el email está verificado
       if (!user.email_verified) {
-        throw new AuthError(
-          "Email no verificado",
-          "EMAIL_NOT_VERIFIED",
-          403,
-        );
+        throw new AuthError("Email no verificado", "EMAIL_NOT_VERIFIED", 403);
       }
 
       // 6. Resetear contador de intentos fallidos (login exitoso)
@@ -497,9 +494,15 @@ export class AuthService {
         },
       );
 
-      const company = await Company.findByPk(companyId, { attributes: ["id", "name", "slug"] });
+      const company = await Company.findByPk(companyId, {
+        attributes: ["id", "name", "slug"],
+      });
 
-      logger.info("Email verificado", { userId, companyId: company?.id, companySlug: company?.slug });
+      logger.info("Email verificado", {
+        userId,
+        companyId: company?.id,
+        companySlug: company?.slug,
+      });
 
       return company?.slug || "";
     } catch (error) {
@@ -531,12 +534,15 @@ export class AuthService {
    */
   async logoutAll(userId: string, companyId: string): Promise<number> {
     try {
-      const revokedCount = await sessionService.revokeAllSessions(userId, companyId);
-      logger.info('Logout global exitoso', { userId, revokedCount });
+      const revokedCount = await sessionService.revokeAllSessions(
+        userId,
+        companyId,
+      );
+      logger.info("Logout global exitoso", { userId, revokedCount });
       return revokedCount;
     } catch (error) {
-      logger.error('Error en logout global:', error);
-      throw new AuthError('Error en logout global', 'LOGOUT_ALL_ERROR', 500);
+      logger.error("Error en logout global:", error);
+      throw new AuthError("Error en logout global", "LOGOUT_ALL_ERROR", 500);
     }
   }
 
@@ -638,6 +644,64 @@ export class AuthService {
       throw new AuthError(
         "Error actualizando perfil",
         "UPDATE_PROFILE_ERROR",
+        500,
+      );
+    }
+  }
+
+  async deleteProfileService(
+    userId: string,
+    companyId: string,
+    data: deleteProfileDTO,
+  ): Promise<void> {
+    try {
+      // 1. Obtener usuario con hash de contraseña
+      const user = await User.scope("withPassword").findOne({
+        where: {
+          id: userId,
+          company_id: companyId,
+        },
+        attributes: ["id", "password_hash"], // Solo traemos lo necesario
+      });
+
+      if (!user) {
+        throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
+      }
+
+      // 2. Verificar contraseña actual
+      const passwordValid = await passwordService.comparePassword(
+        data.password,
+        user.password_hash, // Directamente del objeto user
+      );
+
+      if (!passwordValid) {
+        throw new AuthError("Contraseña incorrecta", "INVALID_PASSWORD", 400);
+      }
+
+      // 3. Eliminar usuario con (con delete_at)
+      await User.update(
+        {
+          is_active: false, // Desactivar cuenta
+          deleted_at: new Date(), // Marcar como eliminado
+        },
+        {
+          where: {
+            id: userId,
+            company_id: companyId,
+          },
+        },
+      );
+
+      // 4. Revocar todas las sesiones por seguridad
+      await sessionService.revokeAllSessions(userId, companyId);
+
+      logger.info("Perfil eliminado", { userId });
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      logger.error("Error eliminando perfil:", error);
+      throw new AuthError(
+        "Error eliminando perfil",
+        "DELETE_PROFILE_ERROR",
         500,
       );
     }

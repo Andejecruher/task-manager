@@ -114,6 +114,10 @@ export interface UpdateProfileDTO {
   locale?: string;
 }
 
+export interface deleteProfileDTO {
+  password: string;
+}
+
 // ====================
 // SESIONES Y DISPOSITIVOS
 // ====================

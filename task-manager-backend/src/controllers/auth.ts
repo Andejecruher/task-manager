@@ -107,6 +107,13 @@ class UpdateProfileDTOClass {
   fullName?: string;
 }
 
+// DTO para eliminar perfil
+class deleteProfileDTOClass {
+  @IsString()
+  @IsNotEmpty()
+  password!: string;
+}
+
 class ChangePasswordDTOClass {
   @IsString()
   @IsNotEmpty()
@@ -316,24 +323,19 @@ export class AuthController {
    */
   async logoutAll(req: Request, res: Response) {
     try {
-
       const authReq = req as AuthRequest;
 
       const revokedCount = await authService.logoutAll(
         authReq.user.id,
-        authReq.company.id
+        authReq.company.id,
       );
 
       // Limpiar cookies
       this.clearAuthCookies(res);
 
-      res.apiSuccess(
-        { revokedCount },
-        `Se cerraron ${revokedCount} sesiones`
-      );
-
+      res.apiSuccess({ revokedCount }, `Se cerraron ${revokedCount} sesiones`);
     } catch (error) {
-      this.handleError(error, res, 'logoutAll');
+      this.handleError(error, res, "logoutAll");
     }
   }
 
@@ -378,6 +380,37 @@ export class AuthController {
       return res.apiSuccess(updatedProfile, "Perfil actualizado");
     } catch (error) {
       return this.handleError(error, res, "updateProfile");
+    }
+  }
+
+  /**
+   * @route DELETE /api/v1/auth/profile
+   * @desc Eliminar perfil (borrado lógico)
+   * @access Private
+   */
+
+  async deleteProfile(req: Request, res: Response): Promise<Response> {
+    try {
+      const authReq = req as AuthRequest;
+      const dto = plainToClass(deleteProfileDTOClass, req.body);
+      const errors = await validate(dto);
+
+      if (errors.length > 0) {
+        return res.status(400).apiValidationError(errors);
+      }
+
+      await authService.deleteProfileService(
+        authReq.user.id,
+        authReq.company.id,
+        dto,
+      );
+
+      // Limpiar cookies
+      this.clearAuthCookies(res);
+
+      return res.apiSuccess(null, "Perfil eliminado exitosamente");
+    } catch (error) {
+      return this.handleError(error, res, "deleteProfile");
     }
   }
 

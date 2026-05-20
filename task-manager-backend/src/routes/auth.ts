@@ -5,11 +5,9 @@ import {
   extractDeviceInfo,
   requireEmailVerified,
 } from "@/middlewares/auth";
-import { UserRole } from '@/types';
+import { UserRole } from "@/types";
 import { Router } from "express";
-import {
-  MinRoleGuard
-} from '../guards/roles';
+import { MinRoleGuard } from "../guards/roles";
 
 import { CompanyController } from "@/controllers/company";
 
@@ -65,11 +63,11 @@ router.post(
  * @access Private
  */
 router.post(
-  '/logout-all',
+  "/logout-all",
   authenticate,
   CompanyGuard,
   MinRoleGuard(UserRole.MEMBER),
-  authController.logoutAll.bind(authController)
+  authController.logoutAll.bind(authController),
 );
 
 router.get(
@@ -84,6 +82,13 @@ router.put(
   authenticate,
   CompanyGuard,
   authController.updateProfile.bind(authController),
+);
+
+router.delete(
+  "/account",
+  authenticate,
+  CompanyGuard,
+  authController.deleteProfile.bind(authController),
 );
 
 router.get(
@@ -113,20 +118,20 @@ router.get(
 // ====================
 
 router.get(
-  '/companies',
+  "/companies",
   authenticate,
   CompanyController.listCompanies.bind(CompanyController),
 );
 
 router.post(
-  '/switch-company/:companySlug',
+  "/switch-company/:companySlug",
   authenticate,
   validateCompanySlug,
   CompanyController.switchCompany.bind(CompanyController),
 );
 
 router.get(
-  '/validate-slug/:companySlug',
+  "/validate-slug/:companySlug",
   authenticate,
   validateCompanySlug,
   CompanyController.validateSlug.bind(CompanyController),

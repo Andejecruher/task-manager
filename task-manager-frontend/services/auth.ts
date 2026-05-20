@@ -51,6 +51,20 @@ export async function updateProfileService(data: {
     });
 }
 
+export async function deleteProfileService(
+  password: string,
+): Promise<ApiResponse<null>> {
+  return await authApiClient
+    .delete(`/auth/account`, { data: { password } })
+    .then((response) => {
+      clearAuthCookies();
+      return response.data;
+    })
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
 export async function changePasswordService(data: {
   currentPassword: string;
   newPassword: string;

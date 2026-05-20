@@ -8,6 +8,7 @@ import {
   registerServices,
   updateProfileService,
   changePasswordService,
+  deleteProfileService,
 } from "@/services/auth";
 import { AuthUser, Company, LoginDTO, RegisterDTO } from "@/types";
 import { useRouter } from "next/navigation";
@@ -39,6 +40,7 @@ interface AuthContextType {
     fullName?: string;
     avatarUrl?: string;
   }) => Promise<void>;
+  deleteProfile: (password: string) => Promise<void>;
   changePassword: (data: {
     currentPassword: string;
     newPassword: string;
@@ -185,6 +187,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [getMe],
   );
 
+  const deleteProfile = useCallback(
+    async (password: string) => {
+      try {
+        await deleteProfileService(password);
+        toast.success("Profile deleted successfully");
+        logout();
+      } catch (error: any) {
+        toast.error("Error deleting profile", {
+          description: error?.message || "An error occurred",
+        });
+        throw error;
+      }
+    },
+    [logout],
+  );
+
   // ── Change Password ───────────────────────────────────────────────────────
   const changePassword = useCallback(
     async (data: { currentPassword: string; newPassword: string }) => {
@@ -220,6 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         register,
         updateProfile,
+        deleteProfile,
         changePassword,
       }}
     >

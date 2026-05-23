@@ -8,6 +8,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
+import uploadRoutes from "@/routes/upload.routes";
 
 import {
   getTokenManagerScript,
@@ -119,6 +120,9 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
+// Servir archivos subidos estáticamente
+app.use("/uploads", express.static("uploads"));
+
 // 5. Compression
 app.use(compression());
 
@@ -152,6 +156,8 @@ app.get("/health", (_: Request, res: Response) => {
 
 // // API Routes
 app.use("/api/v1", router);
+// Upload routes
+app.use("/api", uploadRoutes);
 
 // Swagger documentation with Token Manager
 app.use(

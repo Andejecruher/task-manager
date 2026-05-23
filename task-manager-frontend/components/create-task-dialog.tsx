@@ -1,8 +1,11 @@
 "use client";
 
+import { Paperclip, X, Upload, Loader2 } from "lucide-react";
+import { uploadFiles } from "@/lib/upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -19,7 +22,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { useTask } from "@/hooks/use-task";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -49,11 +52,37 @@ export function CreateTaskDialog({
   const [dueDate, setDueDate] = useState<string>("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles([...selectedFiles, ...files]);
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+  };
 
   const handleCreate = async () => {
     if (!title.trim()) {
       toast.error("Task title is required");
       return;
+    }
+
+    // Subir archivos primero
+    let attachmentUrls: string[] = [];
+    if (selectedFiles.length > 0) {
+      setUploading(true);
+      try {
+        attachmentUrls = await uploadFiles(selectedFiles);
+      } catch (error) {
+        toast.error("Error uploading files");
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
     }
 
     setIsCreating(true);
@@ -64,6 +93,7 @@ export function CreateTaskDialog({
       priority,
       assignee_id: assigneeId === "unassigned" ? null : assigneeId,
       due_date: dueDate ? new Date(dueDate + "T12:00:00") : undefined,
+      attachments: attachmentUrls, //funcion de carga de archivos
     });
     setIsCreating(false);
 
@@ -189,6 +219,71 @@ export function CreateTaskDialog({
                 />
               </div>
             </div>
+            {/* SECCIÓN DE ARCHIVOS */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                Attachments
+              </Label>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+              >
+                <Upload className="h-4 w-4 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Click to select files
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Max 50 MB per file (PDF, images)
+                </p>
+              </div>
+
+              {uploading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Uploading files...
+                </div>
+              )}
+
+              {selectedFiles.length > 0 && !uploading && (
+                <div className="space-y-2 mt-2">
+                  {selectedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between bg-muted/50 rounded-lg p-2"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-sm truncate">{file.name}</span>
+                        <Badge variant="secondary" className="text-xs shrink-0">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </Badge>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFile(index);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <DialogFooter>
@@ -199,8 +294,8 @@ export function CreateTaskDialog({
             >
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={isCreating}>
-              {isCreating ? "Creating..." : "Create"}
+            <Button onClick={handleCreate} disabled={isCreating || uploading}>
+              {isCreating || uploading ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>

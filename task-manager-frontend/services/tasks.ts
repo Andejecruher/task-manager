@@ -12,8 +12,11 @@ export async function createTask(
     due_date?: Date;
     assignee_id: string;
     board_id?: string;
+    attachments?: string[];
   },
 ): Promise<ApiResponse<Task>> {
+  console.log("📤 createTask recibió:", data); // 👈 Agregar
+  console.log("📎 attachments en data:", data.attachments); // 👈 Agregar
   return await authApiClient
     .post(`/task`, {
       ...data,

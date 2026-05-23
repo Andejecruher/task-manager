@@ -82,6 +82,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         priority: data.priority,
         assignee_id: data.assignee_id,
         due_date: data.due_date,
+        attachments: data.attachments,
       });
 
       if (response.success) {

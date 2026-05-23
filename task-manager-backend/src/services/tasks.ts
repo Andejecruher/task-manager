@@ -6,6 +6,9 @@ import { User } from "@/database/models/User";
 import { AuthError } from "@/types";
 import { logger } from "@/utils/logger";
 import { v4 as uuidv4 } from "uuid";
+import { TaskAttachment } from "@/database/models/TaskAttachment";
+import fs from "fs";
+import path from "path";
 
 interface CreateTaskData {
   title: string;
@@ -16,6 +19,7 @@ interface CreateTaskData {
   assignee_ids?: string[];
   due_date?: Date;
   tags?: string[];
+  attachments?: string[];
 }
 
 interface UpdateTaskData {
@@ -102,6 +106,32 @@ class TasksService {
         created_at: new Date(),
         updated_at: new Date(),
       });
+
+      //  5. Guardar attachments si existen
+      if (data.attachments && data.attachments.length > 0) {
+        const attachmentsToCreate = data.attachments.map(
+          (url: string, index: number) => ({
+            id: uuidv4(),
+            company_id: companyId,
+            task_id: newTask.id,
+            filename: `file-${Date.now()}-${index}`,
+            original_filename: url.split("/").pop() || `file-${index}`,
+            file_size: 0,
+            storage_provider: "local",
+            storage_path: url.replace("/uploads/", ""),
+            storage_url: url,
+            uploaded_by: userId,
+            uploaded_at: new Date(),
+          }),
+        );
+
+        await TaskAttachment.bulkCreate(attachmentsToCreate);
+
+        logger.info("Attachments guardados", {
+          taskId: newTask.id,
+          attachmentsCount: data.attachments.length,
+        });
+      }
 
       logger.info("Tarea creada exitosamente", {
         taskId: newTask.id,
@@ -277,12 +307,19 @@ class TasksService {
     userId: string,
   ): Promise<void> {
     try {
-      // Buscar la tarea
+      // Buscar la tarea con sus attachments
       const task = await Task.findOne({
         where: {
           id: taskId,
           company_id: companyId,
         },
+        include: [
+          {
+            model: TaskAttachment,
+            as: "attachments",
+            required: false,
+          },
+        ],
       });
 
       if (!task) {
@@ -295,10 +332,37 @@ class TasksService {
         throw new AuthError("Usuario no encontrado", "USER_NOT_FOUND", 404);
       }
 
-      // Soft delete (marca deleted_at con la fecha actual)
+      // ✅ Obtener attachments como objeto plano
+      const attachments = task.get("attachments") as
+        | TaskAttachment[]
+        | undefined;
+
+      // ✅ Eliminar archivos físicos
+      if (attachments && attachments.length > 0) {
+        for (const attachment of attachments) {
+          const fullName = attachment.storage_url?.split("/").pop();
+          if (!fullName) {
+            logger.warn("No se pudo obtener el nombre del archivo", {
+              storage_url: attachment.storage_url,
+            });
+            continue; // Salta este attachment
+          }
+          const filePath = path.join(process.cwd(), "uploads", fullName);
+
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            logger.info("Archivo físico eliminado", {
+              filePath,
+              attachmentId: attachment.id,
+            });
+          }
+        }
+      }
+
+      // Soft delete de la tarea
       await task.destroy();
 
-      logger.info("Tarea eliminada", {
+      logger.info("Tarea y archivos eliminados", {
         taskId,
         deletedBy: userId,
       });

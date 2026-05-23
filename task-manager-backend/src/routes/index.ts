@@ -8,11 +8,13 @@ import tasksRoutes from "@/routes/tasks";
 import userRoutes from "@/routes/user";
 import workspaceRoutes from "@/routes/workspace";
 import workspacemenberRoutes from "@/routes/workspacemenber";
+import uploadRoutes from "@/routes/upload.routes";
 
 router.use("/auth", authRoutes);
 router.use("/user", userRoutes);
 router.use("/workspace", workspaceRoutes);
 router.use("/task", tasksRoutes);
 router.use("/workspace/members", workspacemenberRoutes);
+router.use("/upload", uploadRoutes);
 
 export default router;

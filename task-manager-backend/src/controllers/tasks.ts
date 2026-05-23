@@ -71,6 +71,10 @@ class CreateTaskDTO {
   @IsArray({ message: "tags debe ser un array" })
   @IsOptional()
   tags?: string[];
+
+  @IsArray({ message: "attachments debe ser un array" }) //funciinalidad futura para subir archivos
+  @IsOptional()
+  attachments?: string[];
 }
 
 class UpdateTaskDTO {
@@ -117,21 +121,8 @@ class UpdateTaskDTO {
 export class TasksController {
   async createTask(req: Request, res: Response) {
     try {
-      // Validar el body
+      // 👈 Esto debería mostrar attachments
       const bodyDto = plainToClass(CreateTaskDTO, req.body, {});
-
-      logger.debug("📥 assignee_id recibido:", {
-        value: bodyDto.assignee_id,
-        type: typeof bodyDto.assignee_id,
-        isNull: bodyDto.assignee_id === null,
-        isUndefined: bodyDto.assignee_id === undefined,
-      });
-      // 👇 AGREGAR ESTE LOG
-      logger.debug("📅 Fecha en controlador:", {
-        due_date: bodyDto.due_date,
-        type: typeof bodyDto.due_date,
-        isDate: bodyDto.due_date instanceof Date,
-      });
 
       const bodyErrors = await validate(bodyDto);
 
@@ -157,6 +148,9 @@ export class TasksController {
       logger.debug("📅 Guardando en BD:", {
         due_date: bodyDto.due_date,
       });
+      logger.debug("📎 Enviando al servicio:", {
+        attachments: bodyDto.attachments,
+      });
       // Crear la tarea
       const newTask = await tasksService.createTask(
         {
@@ -168,6 +162,7 @@ export class TasksController {
           assignee_ids: bodyDto.assignee_ids || [],
           due_date: bodyDto.due_date ?? undefined,
           tags: bodyDto.tags || [],
+          attachments: bodyDto.attachments || [],
         },
         workspaceId,
         companyId,

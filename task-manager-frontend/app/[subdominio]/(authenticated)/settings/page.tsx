@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/auth-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -39,6 +40,18 @@ export default function SettingsPage() {
     setEmail,
     updateProfile,
   } = useSettings();
+
+  const { deleteProfile } = useAuth();
+
+  //funcion para eliminar el perfil del usuario
+  const handleDeleteProfile = async () => {
+    const password = prompt(
+      "Are you sure you want to delete your account? This action cannot be undone. Please enter your password to confirm.",
+    );
+    if (password) {
+      await deleteProfile(password);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -262,7 +275,7 @@ export default function SettingsPage() {
                 <Button
                   variant="outline"
                   className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground bg-transparent"
-                  onClick={() => alert("This feature is not implemented")}
+                  onClick={handleDeleteProfile}
                 >
                   Delete
                 </Button>

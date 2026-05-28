@@ -1,14 +1,14 @@
 // services/tasks.ts
-import { Task } from "@/database/models/Task";
-import { Workspace } from "@/database/models/Workspace";
 import { Board } from "@/database/models/Board";
+import { Task } from "@/database/models/Task";
+import { TaskAttachment } from "@/database/models/TaskAttachment";
 import { User } from "@/database/models/User";
+import { Workspace } from "@/database/models/Workspace";
 import { AuthError } from "@/types";
 import { logger } from "@/utils/logger";
-import { v4 as uuidv4 } from "uuid";
-import { TaskAttachment } from "@/database/models/TaskAttachment";
 import fs from "fs";
 import path from "path";
+import { v4 as uuidv4 } from "uuid";
 
 interface CreateTaskData {
   title: string;
@@ -122,6 +122,10 @@ class TasksService {
             storage_url: url,
             uploaded_by: userId,
             uploaded_at: new Date(),
+            id_in_drive: null,
+            url_in_drive: null,
+            web_content_link: null,
+            web_link_view: null,
           }),
         );
 

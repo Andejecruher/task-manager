@@ -28,7 +28,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "health:check": "tsx scripts/health-check.ts"
+    "health:check": "tsx scripts/health-check.ts",
+    "drive:token": "tsx scripts/generate-token-drive.ts"
   },
   "keywords": [
     "task-manager",
@@ -58,6 +59,7 @@
     "express-http-context": "^1.2.4",
     "express-rate-limit": "^6.10.0",
     "express-request-id": "^1.4.1",
+    "googleapis": "^172.0.0",
     "helmet": "^7.0.0",
     "ioredis": "^5.3.2",
     "jsonwebtoken": "^9.0.2",

@@ -54,11 +54,11 @@ class CompanyControllerClass {
       )) as UserCompanyInfo | null;
 
       if (!membership) {
-        return res.status(403).apiError(
-          "No perteneces a esta compañía",
-          403,
-          { code: "NOT_COMPANY_MEMBER" },
-        );
+        return res
+          .status(403)
+          .apiError("No perteneces a esta compañía", 403, {
+            code: "NOT_COMPANY_MEMBER",
+          });
       }
 
       const { user_id, company_id, role, company } = membership;
@@ -72,15 +72,14 @@ class CompanyControllerClass {
         req.ip,
       );
 
-      const { token: accessToken, expiresIn } = tokenService.generateAccessToken(
-        {
+      const { token: accessToken, expiresIn } =
+        tokenService.generateAccessToken({
           userId: user_id,
           companyId: company_id,
           sessionId,
           role: UserRole[role as keyof typeof UserRole],
           email: authReq.user.email,
-        },
-      );
+        });
 
       return res.apiSuccess(
         {
@@ -132,11 +131,9 @@ class CompanyControllerClass {
         );
       }
 
-      return res.apiError(
-        "Slug no válido",
-        404,
-        { code: "INVALID_COMPANY_SLUG" },
-      );
+      return res.apiError("Slug no válido", 404, {
+        code: "INVALID_COMPANY_SLUG",
+      });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Error validando slug:", error);

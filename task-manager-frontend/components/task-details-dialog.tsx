@@ -48,7 +48,7 @@ export function TaskDetailsDialog({
   open,
   onOpenChange,
 }: TaskDetailsDialogProps) {
-  const { updateTask, deleteTask } = useTask();
+  const { updateTask, deleteTask, getTask } = useTask();
   const { users } = useWorkspace();
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
@@ -58,29 +58,57 @@ export function TaskDetailsDialog({
   const [assigneeId, setAssigneeId] = useState<string>("");
   const [dueDate, setDueDate] = useState("");
   const [tags, setTags] = useState("");
+  const [fullTask, setFullTask] = useState<Task | null>(null);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+
+  // Cargar la tarea completa con attachments cuando se abre
+  useEffect(() => {
+    if (task?.id && open) {
+      loadFullTask(task.id);
+    }
+  }, [task?.id, open]);
+
+  const loadFullTask = async (taskId: string) => {
+    setLoadingAttachments(true);
+    try {
+      const taskWithAttachments = await getTask(taskId);
+      if (taskWithAttachments) {
+        setFullTask(taskWithAttachments);
+      }
+    } catch (error) {
+      console.error("Error loading task with attachments:", error);
+    } finally {
+      setLoadingAttachments(false);
+    }
+  };
+
+  // Usar fullTask si existe, sino usar task
+  const displayTask = fullTask || task;
 
   useEffect(() => {
-    if (task) {
-      setTitle(task.title);
-      setDescription(task.description ?? "");
-      setPriority(task.priority);
-      setStatus(task.status);
-      setAssigneeId(task.assignee_id ?? "");
+    if (displayTask) {
+      setTitle(displayTask.title);
+      setDescription(displayTask.description ?? "");
+      setPriority(displayTask.priority);
+      setStatus(displayTask.status);
+      setAssigneeId(displayTask.assignee_id ?? "");
       setDueDate(
-        task.due_date ? format(new Date(task.due_date), "yyyy-MM-dd") : "",
+        displayTask.due_date
+          ? format(new Date(displayTask.due_date), "yyyy-MM-dd")
+          : "",
       );
-      setTags((task.tags ?? []).join(", "));
+      setTags((displayTask.tags ?? []).join(", "));
       setIsEditing(false);
     }
-  }, [task]);
+  }, [displayTask]);
 
-  if (!task) return null;
+  if (!displayTask) return null;
 
   const assignee = users?.find((u) => u.id === assigneeId);
-  const creator = users?.find((u) => u.id === task.created_by);
+  const creator = users?.find((u) => u.id === displayTask.created_by);
 
   const handleSave = () => {
-    updateTask(task.id, {
+    updateTask(displayTask.id, {
       title: title.trim(),
       description: description.trim() || undefined,
       priority,
@@ -98,7 +126,7 @@ export function TaskDetailsDialog({
 
   const handleDelete = () => {
     if (confirm("Are you sure you want to delete this task?")) {
-      deleteTask(task.id);
+      deleteTask(displayTask.id);
       onOpenChange(false);
     }
   };
@@ -225,31 +253,31 @@ export function TaskDetailsDialog({
               <div className="space-y-4">
                 <div>
                   <h2 className="text-2xl font-bold text-balance leading-tight">
-                    {task.title}
+                    {displayTask.title}
                   </h2>
                   <div className="flex items-center gap-2 mt-3">
                     <Badge
                       variant="outline"
-                      className={STATUS_COLORS[task.status]}
+                      className={STATUS_COLORS[displayTask.status]}
                     >
-                      {STATUS_LABELS[task.status]}
+                      {STATUS_LABELS[displayTask.status]}
                     </Badge>
                     <Badge
                       variant="outline"
-                      className={PRIORITY_COLORS[task.priority]}
+                      className={PRIORITY_COLORS[displayTask.priority]}
                     >
-                      {PRIORITY_LABELS[task.priority]}
+                      {PRIORITY_LABELS[displayTask.priority]}
                     </Badge>
                   </div>
                 </div>
 
-                {task.description && (
+                {displayTask.description && (
                   <div className="space-y-2">
                     <h3 className="text-sm font-medium text-muted-foreground">
                       Description
                     </h3>
                     <p className="text-sm leading-relaxed text-pretty">
-                      {task.description}
+                      {displayTask.description}
                     </p>
                   </div>
                 )}
@@ -281,12 +309,15 @@ export function TaskDetailsDialog({
                       )}
                     </div>
 
-                    {task.due_date && (
+                    {displayTask.due_date && (
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Due date:</span>
                         <span className="font-medium">
-                          {format(new Date(task.due_date), "MMMM d, yyyy")}
+                          {format(
+                            new Date(displayTask.due_date),
+                            "MMMM d, yyyy",
+                          )}
                         </span>
                       </div>
                     )}
@@ -295,20 +326,20 @@ export function TaskDetailsDialog({
                       <Flag className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Priority:</span>
                       <span className="font-medium">
-                        {PRIORITY_LABELS[task.priority]}
+                        {PRIORITY_LABELS[displayTask.priority]}
                       </span>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    {(task.tags ?? []).length > 0 && (
+                    {(displayTask.tags ?? []).length > 0 && (
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Tag className="h-4 w-4" />
                           <span>Tags:</span>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {(task.tags ?? []).map((tag) => (
+                          {(displayTask.tags ?? []).map((tag) => (
                             <Badge key={tag} variant="secondary">
                               {tag}
                             </Badge>
@@ -319,13 +350,71 @@ export function TaskDetailsDialog({
                   </div>
                 </div>
 
+                {/* SECCIÓN DE ARCHIVOS ADJUNTOS */}
+                {loadingAttachments && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    Cargando archivos...
+                  </div>
+                )}
+
+                {!loadingAttachments &&
+                  displayTask.attachments &&
+                  displayTask.attachments.length > 0 && (
+                    <>
+                      <Separator />
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-muted-foreground">
+                          Archivos adjuntos ({displayTask.attachments.length})
+                        </h3>
+                        <div className="grid gap-3 overflow-hidden">
+                          {displayTask.attachments.map((attachment, index) => (
+                            <div
+                              key={attachment.id || index}
+                              className="flex items-center gap-3 p-3 border rounded-lg overflow-hidden"
+                            >
+                              {attachment.mime_type?.startsWith("image/") && (
+                                <img
+                                  src={attachment.storage_url}
+                                  alt={attachment.original_filename}
+                                  className="w-16 h-16 object-cover rounded cursor-pointer shrink-0"
+                                  onClick={() =>
+                                    window.open(
+                                      attachment.storage_url,
+                                      "_blank",
+                                    )
+                                  }
+                                />
+                              )}
+
+                              {!attachment.mime_type?.startsWith("image/") && (
+                                <div className="w-16 h-16 flex items-center justify-center bg-gray-100 rounded shrink-0">
+                                  📄
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0 overflow-hidden">
+                                <a
+                                  href={attachment.storage_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-500 hover:underline break-all truncate block max-w-full"
+                                >
+                                  { attachment.filename}
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
                 <Separator />
 
                 <div className="text-xs text-muted-foreground space-y-1">
                   <p>
                     Created{" "}
                     {format(
-                      new Date(task.created_at),
+                      new Date(displayTask.created_at),
                       "MMMM d, yyyy 'at' h:mm a",
                     )}
                   </p>
@@ -333,9 +422,9 @@ export function TaskDetailsDialog({
                     <p>Created by {creator.fullName || creator.email}</p>
                   )}
                   <p>
-                    Last updated
+                    Last updated{" "}
                     {format(
-                      new Date(task.updated_at),
+                      new Date(displayTask.updated_at),
                       "MMMM d, yyyy 'at' h:mm a",
                     )}
                   </p>

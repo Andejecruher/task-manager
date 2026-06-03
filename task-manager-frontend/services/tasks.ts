@@ -15,8 +15,6 @@ export async function createTask(
     attachments?: string[];
   },
 ): Promise<ApiResponse<Task>> {
-  console.log("📤 createTask recibió:", data); // 👈 Agregar
-  console.log("📎 attachments en data:", data.attachments); // 👈 Agregar
   return await authApiClient
     .post(`/task`, {
       ...data,
@@ -34,6 +32,16 @@ export async function getTasks(
 ): Promise<ApiResponse<{ tasks: Task[] }>> {
   return await authApiClient
     .get(`/workspace/${workspaceId}/tasks`)
+    .then((response) => response.data)
+    .catch((error) => {
+      throw error.response?.data;
+    });
+}
+
+// Obtener una tarea por ID (con attachments)
+export async function getTaskById(taskId: string): Promise<ApiResponse<Task>> {
+  return await authApiClient
+    .get(`/task/${taskId}`)
     .then((response) => response.data)
     .catch((error) => {
       throw error.response?.data;

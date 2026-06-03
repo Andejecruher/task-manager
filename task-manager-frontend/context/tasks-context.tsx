@@ -7,6 +7,7 @@ import {
   getTasks,
   moveToNextStatus as moveTask,
   updateTask as updateTaskService,
+  getTaskById,
 } from "@/services/tasks";
 import { ApiErrorResponse, Task } from "@/types";
 import {
@@ -27,6 +28,7 @@ interface TaskContextType {
   deleteTask: (id: string) => Promise<boolean>;
   moveToNextStatus: (id: string) => Promise<Task | null>;
   refreshTasks: () => Promise<void>;
+  getTask: (id: string) => Promise<Task | null>;
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -104,6 +106,29 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   };
+
+  // En TaskContextType, agrega:
+getTask: (id: string) => Promise<Task | null>;
+
+// En TaskProvider, agrega:
+const getTask = async (id: string): Promise<Task | null> => {
+  try {
+    setLoading(true);
+    const response = await getTaskById(id);
+    if (response.success) {
+      return response.data;
+    } else {
+      toast.error("Failed to load task: " + response.error);
+      return null;
+    }
+  } catch (err: any) {
+    console.error("Get task error:", err);
+    toast.error(err?.message || "An unexpected error occurred");
+    return null;
+  } finally {
+    setLoading(false);
+  }
+};
 
   const moveToNextStatus = async (id: string): Promise<Task | null> => {
     try {
@@ -185,6 +210,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         deleteTask,
         refreshTasks,
         moveToNextStatus,
+        getTask,
       }}
     >
       {children}

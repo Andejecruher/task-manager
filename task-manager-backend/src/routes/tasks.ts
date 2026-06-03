@@ -16,6 +16,14 @@ router.get(
   tasksController.getTasksByWorkspaceId.bind(tasksController),
 );
 
+router.get(
+  "/:taskId",
+  authenticate,
+  requireEmailVerified,
+  extractDeviceInfo,
+  tasksController.getTaskById.bind(tasksController),
+);
+
 router.post(
   "/",
   authenticate,

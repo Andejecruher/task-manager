@@ -6,7 +6,7 @@ export function getDriveClient() {
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    process.env.GOOGLE_REDIRECT_URI,
   );
 
   oauth2Client.setCredentials({
@@ -44,8 +44,8 @@ export async function uploadFileToDrive(file: Express.Multer.File) {
 export async function uploadFilesToDrive(files: Express.Multer.File[]) {
   const drive = getDriveClient();
 
-  const uploadPromises = files.map((file) =>
-    drive.files.create({
+  const uploadPromises = files.map(async (file) => {
+    const response = await drive.files.create({
       requestBody: {
         name: file.originalname,
         mimeType: file.mimetype,
@@ -58,9 +58,24 @@ export async function uploadFilesToDrive(files: Express.Multer.File[]) {
         body: fs.createReadStream(file.path),
       },
       fields: "id,name,mimeType,size,webViewLink,webContentLink,createdTime",
-    })
-  );
+    });
 
-  const responses = await Promise.all(uploadPromises);
-  return responses.map((res) => res.data);
+    // ✅ SOLO AGREGAR ESTO - Hacer público sin guardar en local
+    try {
+      await drive.permissions.create({
+        fileId: response.data.id!,
+        requestBody: {
+          role: "reader",
+          type: "anyone",
+        },
+      });
+      console.log(`✅ Archivo público: ${file.originalname}`);
+    } catch (permError) {
+      console.error(`❌ Error haciendo público:`, permError);
+    }
+
+    return response.data;
+  });
+
+  return Promise.all(uploadPromises);
 }

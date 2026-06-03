@@ -24,7 +24,14 @@ export interface Task {
   related_task_ids?: string[];
   created_by: string;
   updated_by?: string;
-
+  attachments?: {
+  id: string;
+  storage_url: string;        // ← Cambiar de 'url' a 'storage_url'
+  original_filename: string;  // ← Cambiar de 'filename' a 'original_filename'
+  mime_type?: string;
+  file_size?: number;
+  filename?: string;          // ← Opcional para compatibilidad
+}[];
   created_at: Date;
   updated_at: Date;
   deleted_at?: Date | null;

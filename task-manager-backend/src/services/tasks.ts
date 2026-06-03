@@ -10,6 +10,8 @@ import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 
+type TaskWithAttachments = Task & { attachments?: TaskAttachment[] };
+
 interface CreateTaskData {
   title: string;
   description?: string;
@@ -153,6 +155,39 @@ class TasksService {
       throw new AuthError("Error creando tarea", "CREATE_TASK_ERROR", 500);
     }
   }
+
+  async getTaskById(taskId: string, companyId: string): Promise<TaskWithAttachments | null> {
+    try {
+      const task = (await Task.findOne({
+        where: {
+          id: taskId,
+          company_id: companyId,
+        },
+        include: [
+          {
+            model: TaskAttachment,
+            as: 'attachments',
+            required: false,
+            attributes: ['id', 'filename', 'original_filename', 'storage_url', 'mime_type', 'file_size'],
+          },
+        ],
+      })) as TaskWithAttachments | null;
+
+    if (!task) {
+      return null;
+    }
+
+    logger.info("Tarea obtenida por ID", {
+      taskId,
+      attachmentsCount: task.attachments?.length || 0,
+    });
+
+    return task;
+  } catch (error) {
+    logger.error("Error obteniendo tarea por ID:", error);
+    throw new AuthError("Error obteniendo tarea", "GET_TASK_ERROR", 500);
+  }
+}
 
   async getTasksByWorkspaceId(workspaceId: string): Promise<Task[]> {
     try {

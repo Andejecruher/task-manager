@@ -11,14 +11,32 @@ export const uploadFiles = async (req: Request, res: Response): Promise<void> =>
     return;
   }
 
-  const driveFile = await uploadFilesToDrive(files);
-
-  await Promise.all(
-    files.map((file) => fs.unlink(file.path).catch(() => {
-      logger.error(`Error deleting file ${file.path}`);
-    }))
-  );
-
-  const urls = files.map((file) => `/uploads/${file.filename}`);
-  res.status(200).json({ urls, driveFile });
+  try {
+    // Subir a Google Drive
+    const driveFiles = await uploadFilesToDrive(files);
+    
+  
+   // Extraer URLs de Google Drive (prioridad a webViewLink para ver en navegador)
+const urls = driveFiles.map((file) => 
+  file.webViewLink || file.webContentLink || `https://drive.google.com/file/d/${file.id}/view`
+);
+    // Limpiar archivos temporales
+    await Promise.all(
+      files.map((file) => fs.unlink(file.path).catch(() => {}))
+    );
+    
+    // Devolver URLs de Google Drive
+    res.status(200).json({
+      success: true,
+      urls,
+      files: driveFiles,
+    });
+    
+  } catch (error) {
+    logger.error("Error uploading to Google Drive:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Error uploading files to Google Drive" 
+    });
+  }
 };

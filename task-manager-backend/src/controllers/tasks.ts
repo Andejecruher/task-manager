@@ -77,6 +77,7 @@ class CreateTaskDTO {
   attachments?: string[];
 }
 
+
 class UpdateTaskDTO {
   @IsString({ message: "El título debe ser un texto" })
   @IsOptional()
@@ -184,6 +185,46 @@ export class TasksController {
       return res.status(500).apiError("Error interno del servidor");
     }
   }
+
+
+async getTaskById(req: Request, res: Response) {
+  try {
+    // Validar el ID de la tarea
+    const paramsDto = plainToClass(TaskIdParamsDTO, req.params);
+    const paramsErrors = await validate(paramsDto);
+
+    if (paramsErrors.length > 0) {
+      return res.status(400).apiValidationError(paramsErrors);
+    }
+
+    const authReq = req as AuthRequest;
+    const companyId = authReq.company?.id;
+
+    if (!companyId) {
+      return res
+        .status(400)
+        .apiError("No se pudo identificar la compañía", 400);
+    }
+
+    // Obtener la tarea con sus attachments
+    const task = await tasksService.getTaskById(
+      paramsDto.taskId,
+      companyId
+    );
+
+    if (!task) {
+      return res.status(404).apiError("Tarea no encontrada", 404);
+    }
+
+    return res.status(200).apiSuccess(task, "Tarea obtenida exitosamente");
+  } catch (error) {
+    logger.error("Error getting task by ID:", error);
+    if (error instanceof AuthError) {
+      return res.status(error.statusCode).apiError(error.message);
+    }
+    return res.status(500).apiError("Error interno del servidor");
+  }
+}
 
   async getTasksByWorkspaceId(req: Request, res: Response) {
     try {

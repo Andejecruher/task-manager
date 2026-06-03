@@ -14,5 +14,5 @@ export const uploadFiles = async (files: File[]): Promise<string[]> => {
   }
 
   const data = await response.json();
-  return data.urls;
+  return data.files;
 };

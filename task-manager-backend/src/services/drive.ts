@@ -1,4 +1,6 @@
 // src/services/drive.service.ts
+import { TaskAttachment } from "@/database/models";
+import { logger } from "@/utils/logger";
 import { google } from "googleapis";
 import fs from "node:fs";
 
@@ -69,13 +71,30 @@ export async function uploadFilesToDrive(files: Express.Multer.File[]) {
           type: "anyone",
         },
       });
-      console.log(`✅ Archivo público: ${file.originalname}`);
+      logger.info(`Archivo ${file.originalname} subido y hecho público en Google Drive`);
     } catch (permError) {
-      console.error(`❌ Error haciendo público:`, permError);
+      logger.error(`Error al hacer público el archivo ${file.originalname}:`, permError);
     }
 
     return response.data;
   });
 
   return Promise.all(uploadPromises);
+}
+
+// Servicio para eliminar un archivo de Google Drive
+export async function deleteFileFromDrive(fileId: string) {
+  const drive = getDriveClient();
+
+  try {
+    await drive.files.delete({ fileId });
+    await TaskAttachment.update(
+      { deleted_at: new Date() },
+      { where: { id_in_drive: fileId } },
+    );
+    logger.info(`Archivo con ID ${fileId} eliminado de Google Drive`);
+  } catch (error) {
+    logger.error(`Error al eliminar el archivo con ID ${fileId} de Google Drive:`, error);
+    throw error;
+  }
 }

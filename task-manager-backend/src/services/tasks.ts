@@ -112,22 +112,23 @@ class TasksService {
       //  5. Guardar attachments si existen
       if (data.attachments && data.attachments.length > 0) {
         const attachmentsToCreate = data.attachments.map(
-          (url: string, index: number) => ({
+          (file: any, index: number) => ({
             id: uuidv4(),
             company_id: companyId,
             task_id: newTask.id,
             filename: `file-${Date.now()}-${index}`,
-            original_filename: url.split("/").pop() || `file-${index}`,
-            file_size: 0,
-            storage_provider: "local",
-            storage_path: url.replace("/uploads/", ""),
-            storage_url: url,
+            original_filename: file.name,
+            file_size: file.size,
+            storage_provider: "drive",
+            storage_path: file.webViewLink,
+            storage_url: file.webViewLink,
             uploaded_by: userId,
             uploaded_at: new Date(),
-            id_in_drive: null,
-            url_in_drive: null,
-            web_content_link: null,
-            web_link_view: null,
+            mime_type: file.mimeType,
+            id_in_drive: file.id,
+            url_in_drive: file.webContentLink,
+            web_content_link: file.webContentLink,
+            web_link_view: file.webViewLink,
           }),
         );
 
@@ -173,21 +174,21 @@ class TasksService {
         ],
       })) as TaskWithAttachments | null;
 
-    if (!task) {
-      return null;
+      if (!task) {
+        return null;
+      }
+
+      logger.info("Tarea obtenida por ID", {
+        taskId,
+        attachmentsCount: task.attachments?.length || 0,
+      });
+
+      return task;
+    } catch (error) {
+      logger.error("Error obteniendo tarea por ID:", error);
+      throw new AuthError("Error obteniendo tarea", "GET_TASK_ERROR", 500);
     }
-
-    logger.info("Tarea obtenida por ID", {
-      taskId,
-      attachmentsCount: task.attachments?.length || 0,
-    });
-
-    return task;
-  } catch (error) {
-    logger.error("Error obteniendo tarea por ID:", error);
-    throw new AuthError("Error obteniendo tarea", "GET_TASK_ERROR", 500);
   }
-}
 
   async getTasksByWorkspaceId(workspaceId: string): Promise<Task[]> {
     try {

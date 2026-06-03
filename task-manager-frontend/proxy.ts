@@ -40,6 +40,9 @@ export async function proxy(request: NextRequest) {
 
     // Validar slug real para rutas protegidas con subdominio
     const domain = pathSegments[0]
+    console.log("🚀 ----------------------------------🚀");
+    console.log("🚀 ~ :43 ~ proxy ~ domain:", domain);
+    console.log("🚀 ----------------------------------🚀");
 
     if (domain && !isPublic) {
         const isValidatingSlug = await validateSlug(domain, token);

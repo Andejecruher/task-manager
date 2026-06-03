@@ -32,7 +32,7 @@ import {
 import type { Priority, TaskStatus } from "@/lib/types";
 import type { Task } from "@/types/task";
 import { format } from "date-fns";
-import { Calendar, Flag, Tag, Trash2, User } from "lucide-react";
+import { Calendar, DownloadCloud, Eye, Flag, Tag, Trash2, User } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const PRIORITIES: Priority[] = ["low", "medium", "high", "urgent"];
@@ -60,6 +60,7 @@ export function TaskDetailsDialog({
   const [tags, setTags] = useState("");
   const [fullTask, setFullTask] = useState<Task | null>(null);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<any | null>(null);
 
   // Cargar la tarea completa con attachments cuando se abre
   useEffect(() => {
@@ -101,6 +102,61 @@ export function TaskDetailsDialog({
       setIsEditing(false);
     }
   }, [displayTask]);
+
+  // Helpers para preview/descarga
+  const formatFileSize = (bytes?: number) => {
+    if (bytes == null) return "";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let i = 0;
+    let size = bytes;
+    while (size >= 1024 && i < units.length - 1) {
+      size = size / 1024;
+      i += 1;
+    }
+    return `${size.toFixed(size < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
+  };
+
+  const getDriveIdFromUrl = (url?: string) => {
+    if (!url) return null;
+    try {
+      const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (m) return m[1];
+      const qs = url.split("?")[1];
+      if (qs) {
+        const params = new URLSearchParams(qs);
+        if (params.has("id")) return params.get("id");
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null;
+  };
+
+  const getPreviewUrl = (storageUrl?: string, mimeType?: string) => {
+    if (!storageUrl) return "";
+    const driveId = getDriveIdFromUrl(storageUrl);
+    // If file is stored in Drive and we have a backend, use server proxy so
+    // we can fetch private files without making them public.
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+    if (driveId && apiBase) {
+      return `${apiBase}/drive/preview/${driveId}`;
+    }
+
+    // Fallback to Google viewer for public URLs
+    if (mimeType === "application/pdf") {
+      return `https://docs.google.com/gview?url=${encodeURIComponent(
+        storageUrl,
+      )}&embedded=true`;
+    }
+
+    return storageUrl;
+  };
+
+  const getDownloadUrl = (attachment: any) => {
+    const driveId = getDriveIdFromUrl(attachment?.storage_url);
+    if (driveId) return `https://drive.google.com/uc?export=download&id=${driveId}`;
+    return attachment?.storage_url;
+  };
 
   if (!displayTask) return null;
 
@@ -392,14 +448,38 @@ export function TaskDetailsDialog({
                                 </div>
                               )}
                               <div className="flex-1 min-w-0 overflow-hidden">
-                                <a
-                                  href={attachment.storage_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-blue-500 hover:underline break-all truncate block max-w-full"
-                                >
-                                  { attachment.filename}
-                                </a>
+                                <div className="flex items-center justify-between">
+                                  <a
+                                    href={getDownloadUrl(attachment)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-500 hover:underline break-all truncate block max-w-full"
+                                  >
+                                    {attachment.original_filename || attachment.filename}
+                                  </a>
+                                  <div className="ml-3 flex items-center gap-2">
+                                    {attachment.mime_type === "application/pdf" && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setPreviewAttachment(attachment)}
+                                        className="text-sm text-muted-foreground hover:text-blue-600 flex items-center gap-1"
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                    <a
+                                      href={getDownloadUrl(attachment)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-muted-foreground hover:text-blue-600 flex items-center gap-1"
+                                    >
+                                      <DownloadCloud className="h-4 w-4" />
+                                    </a>
+                                  </div>
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {formatFileSize(attachment.file_size)} • {attachment.mime_type}
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -407,6 +487,40 @@ export function TaskDetailsDialog({
                       </div>
                     </>
                   )}
+
+                {previewAttachment && (
+                  <Dialog
+                    open={!!previewAttachment}
+                    onOpenChange={(open) => !open && setPreviewAttachment(null)}
+                  >
+                    <DialogContent className="max-w-4xl w-[95vw] max-h-[95vh]">
+                      <DialogHeader>
+                        <DialogTitle className="text-sm">
+                          {previewAttachment.original_filename || previewAttachment.filename}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="h-[75vh]">
+                        <iframe
+                          src={getPreviewUrl(previewAttachment.storage_url, previewAttachment.mime_type)}
+                          className="w-full h-full border"
+                          title={previewAttachment.original_filename || previewAttachment.filename}
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 mt-2">
+                        <a
+                          href={getDownloadUrl(previewAttachment)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button variant="outline" className="gap-2">
+                            <DownloadCloud className="h-4 w-4" /> Descargar
+                          </Button>
+                        </a>
+                        <Button onClick={() => setPreviewAttachment(null)}>Cerrar</Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
 
                 <Separator />
 

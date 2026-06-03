@@ -1,12 +1,16 @@
 "use client";
 
-import { Paperclip, X, Upload, Loader2 } from "lucide-react";
-import { uploadFiles } from "@/lib/upload";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -14,20 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
-import { useState, useRef } from "react";
-import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
 import { useTask } from "@/hooks/use-task";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { STATUS_LABELS, STATUS_ORDER, PRIORITY_LABELS } from "@/lib/schemas";
-import type { TaskStatus, Priority } from "@/lib/types";
+import { PRIORITY_LABELS, STATUS_LABELS, STATUS_ORDER } from "@/lib/schemas";
+import type { Priority, TaskStatus } from "@/lib/types";
+import { uploadFiles } from "@/lib/upload";
+import { Loader2, Paperclip, Plus, Upload, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 interface CreateTaskDialogProps {
   workspaceId: string;
@@ -72,7 +71,7 @@ export function CreateTaskDialog({
     }
 
     // Subir archivos primero
-    let attachmentUrls: string[] = [];
+    let attachmentUrls;
     if (selectedFiles.length > 0) {
       setUploading(true);
       try {

@@ -4,10 +4,10 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import {
   createTask as createTaskService,
   deleteTask as deleteTaskService,
+  getTaskById,
   getTasks,
   moveToNextStatus as moveTask,
   updateTask as updateTaskService,
-  getTaskById,
 } from "@/services/tasks";
 import { ApiErrorResponse, Task } from "@/types";
 import {
@@ -108,27 +108,27 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   };
 
   // En TaskContextType, agrega:
-getTask: (id: string) => Promise<Task | null>;
+  getTask: (id: string) => Promise<Task | null>;
 
-// En TaskProvider, agrega:
-const getTask = async (id: string): Promise<Task | null> => {
-  try {
-    setLoading(true);
-    const response = await getTaskById(id);
-    if (response.success) {
-      return response.data;
-    } else {
-      toast.error("Failed to load task: " + response.error);
+  // En TaskProvider, agrega:
+  const getTask = async (id: string): Promise<Task | null> => {
+    try {
+      setLoading(true);
+      const response = await getTaskById(id);
+      if (response.success) {
+        return response.data;
+      } else {
+        toast.error("Failed to load task: " + response.error);
+        return null;
+      }
+    } catch (err: any) {
+      console.error("Get task error:", err);
+      toast.error(err?.message || "An unexpected error occurred");
       return null;
+    } finally {
+      setLoading(false);
     }
-  } catch (err: any) {
-    console.error("Get task error:", err);
-    toast.error(err?.message || "An unexpected error occurred");
-    return null;
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const moveToNextStatus = async (id: string): Promise<Task | null> => {
     try {

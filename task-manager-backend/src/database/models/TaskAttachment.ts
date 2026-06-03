@@ -1,5 +1,5 @@
-import { DataTypes, Model, Optional } from "sequelize";
 import { sequelizeConnection } from "@/database/connection-sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 
 interface TaskAttachmentAttributes {
   id: string;
@@ -9,6 +9,10 @@ interface TaskAttachmentAttributes {
   original_filename?: string;
   file_size: number;
   mime_type?: string;
+  id_in_drive?: string | null;
+  url_in_drive?: string | null;
+  web_content_link?: string | null;
+  web_link_view?: string | null;
   storage_provider: string;
   storage_path: string;
   storage_url: string;
@@ -27,12 +31,15 @@ interface TaskAttachmentCreationAttributes extends Optional<
   | "thumbnail_url"
   | "uploaded_at"
   | "deleted_at"
-> {}
+  | "id_in_drive"
+  | "url_in_drive"
+  | "web_content_link"
+  | "web_link_view"
+> { }
 
 class TaskAttachment
   extends Model<TaskAttachmentAttributes, TaskAttachmentCreationAttributes>
-  implements TaskAttachmentAttributes
-{
+  implements TaskAttachmentAttributes {
   declare id: string;
   declare company_id: string;
   declare task_id: string;
@@ -45,6 +52,10 @@ class TaskAttachment
   declare storage_url: string;
   declare thumbnail_url?: string;
   declare uploaded_by: string;
+  declare id_in_drive?: string | null;
+  declare url_in_drive?: string | null;
+  declare web_content_link?: string | null;
+  declare web_link_view?: string | null;
 
   declare readonly uploaded_at: Date;
   declare readonly deleted_at?: Date | null;
@@ -129,6 +140,22 @@ TaskAttachment.init(
       type: DataTypes.DATE,
       field: "deleted_at",
     },
+    id_in_drive: {
+      type: DataTypes.STRING(100),
+      field: "id_in_drive",
+    },
+    url_in_drive: {
+      type: DataTypes.STRING(500),
+      field: "url_in_drive",
+    },
+    web_content_link: {
+      type: DataTypes.STRING(500),
+      field: "web_content_link",
+    },
+    web_link_view: {
+      type: DataTypes.STRING(500),
+      field: "web_link_view",
+    },
   },
   {
     sequelize: sequelizeConnection.getSequelize(),
@@ -177,5 +204,6 @@ export function setupTaskAttachmentAssociations() {
 export {
   TaskAttachment,
   TaskAttachmentAttributes,
-  TaskAttachmentCreationAttributes,
+  TaskAttachmentCreationAttributes
 };
+

@@ -1,4 +1,4 @@
-import { uploadFiles } from "@/controllers/upload.controller";
+import { deleteFile, uploadFiles } from "@/controllers/upload.controller";
 import { upload } from "@/middlewares/upload.middleware";
 import { Router } from "express";
 
@@ -10,5 +10,6 @@ router.get("/files/:filename", (req, res) => {
   const filePath = `${process.cwd()}/uploads/${filename}`;
   res.sendFile(filePath);
 });
+router.delete("/files/:id", deleteFile);
 
 export default router;
